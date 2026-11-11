@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.32** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.33** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -150,7 +150,7 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 
 ## 9a. Airport lookup (modal)
 
-- A text box (placeholder `ICAO`, 4 characters) and a Go button in the header. Go or Enter opens a centered modal (max 780 px) with the station's current weather. Below 700 px the box is replaced by a magnifier icon that opens the same modal with the box focused and a prompt to enter an identifier.
+- A text box (placeholder `LocID`, shown in mixed case, sized to fit it; 4 characters max) and a Go button in the header. Go or Enter opens a centered modal (max 780 px) with the station's current weather. Below 700 px the box is replaced by a magnifier icon that opens the same modal with the box focused and a prompt to enter an identifier.
 - Top warning, verbatim: "⚠️ This information is for situational awareness only. It must not be used for official flight planning. Always obtain a proper weather briefing through approved sources."
 - The modal header shows the identifier, the station name from AWC when available, and repeats the text box and Go button so another airport can be checked without closing.
 - **Identifier handling (`normalizeIcao`):** trimmed, upper-cased, non-alphanumerics removed. A three-letter alphabetic ID gets a `K` prefix (TOL → KTOL). Anything else is sent as typed (CYYZ, EGLL, 1G0).

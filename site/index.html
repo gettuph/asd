@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.32</title>
+  <title>Aviation Situation Dashboard v1.33</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -129,10 +129,11 @@
     /* Airport lookup (header): ICAO text box + Go. Collapses to a magnifier icon on narrow screens. */
     .lookup { display:flex; align-items:center; gap:4px; }
     .lookup input {
-      width: 5.2em; font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em;
+      width: 4.6em; font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em;
       padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; color: inherit;
       background: color-mix(in srgb, var(--border) 30%, transparent); outline: none;
     }
+    .lookup input::placeholder { text-transform: none; opacity: 0.7; }
     .lookup input:focus { border-color: var(--text-muted); }
     .lookup button {
       font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px; cursor: pointer;
@@ -153,7 +154,7 @@
     .lookup-body .ph:first-child { margin-top: 0; }
     .lookup-body .ph span:last-child { font-family: var(--mono); text-transform: none; letter-spacing: 0; }
     #lookupModal .lookup { margin: 0; }
-    #lookupModal .lookup input { font-size: 15px; width: 6em; padding: 6px 8px; color: var(--text); }
+    #lookupModal .lookup input { font-size: 15px; width: 4.7em; padding: 6px 8px; color: var(--text); }
     #lookupModal .lookup button { font-size: 14px; padding: 6px 12px; color: var(--text); }
 
     /* Status bar */
@@ -417,12 +418,12 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.32&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.33&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
         <form class="lookup" id="lookupForm" autocomplete="off" style="opacity:0.55" title="Look up any airport's METAR and TAF">
-          <input id="lookupInput" type="text" maxlength="4" placeholder="ICAO" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Airport identifier">
+          <input id="lookupInput" type="text" maxlength="4" placeholder="LocID" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Airport identifier">
           <button type="submit" aria-label="Look up airport">Go</button>
         </form>
         <button class="icon-btn" id="lookupBtn" aria-label="Look up an airport's METAR and TAF" title="Airport lookup" style="opacity:0.55">
@@ -1760,7 +1761,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.32";
+    const CURRENT_VERSION = "v1.33";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());
@@ -2506,7 +2507,7 @@
         <div style="min-width:0"><strong id="lookupTitle" style="font-size:18px">Airport lookup</strong> <span id="lookupSub" style="font-size:13px;color:var(--text-muted);margin-left:6px"></span></div>
         <div style="display:flex;align-items:center;gap:10px">
           <form class="lookup" id="lookupModalForm" autocomplete="off" onsubmit="event.preventDefault();lookupAirport(document.getElementById('lookupModalInput').value)">
-            <input id="lookupModalInput" type="text" maxlength="4" placeholder="ICAO" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Airport identifier">
+            <input id="lookupModalInput" type="text" maxlength="4" placeholder="LocID" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Airport identifier">
             <button type="submit" aria-label="Look up airport">Go</button>
           </form>
           <button class="icon-btn" onclick="closeLookupModal()" aria-label="Close airport lookup" style="font-size:22px;line-height:1;padding:4px 10px">&times;</button>
