@@ -91,3 +91,33 @@ test('wxFetch resolves to null (not []) when every path fails, so callers keep l
   const { src } = require('./harness');
   assert.match(src, /console\.warn\("wxFetch: all methods failed for", url\);\s*return null;/);
 });
+
+// ---- airport lookup (v1.32) ----
+test('normalizeIcao: US three-letter LOCID gets a K prefix', () => {
+  assert.equal(ctx.normalizeIcao('tol'), 'KTOL');
+  assert.equal(ctx.normalizeIcao(' dtw '), 'KDTW');
+});
+test('normalizeIcao: four-character and alphanumeric IDs are sent as typed (upper-cased)', () => {
+  assert.equal(ctx.normalizeIcao('ktol'), 'KTOL');
+  assert.equal(ctx.normalizeIcao('cyyz'), 'CYYZ');
+  assert.equal(ctx.normalizeIcao('egll'), 'EGLL');
+  assert.equal(ctx.normalizeIcao('1g0'), '1G0');   // digits: not a LOCID, no K prefix
+  assert.equal(ctx.normalizeIcao('PHNL'), 'PHNL');
+});
+test('normalizeIcao: strips junk and handles empty input', () => {
+  assert.equal(ctx.normalizeIcao('K-TOL'), 'KTOL');
+  assert.equal(ctx.normalizeIcao(''), '');
+  assert.equal(ctx.normalizeIcao(null), '');
+  assert.equal(ctx.normalizeIcao('   '), '');
+});
+test('lookup entry points are top-level functions', () => {
+  for (const f of ['normalizeIcao', 'lookupAirport', 'openLookupModal', 'closeLookupModal', 'metarDetailHtml']) {
+    assert.equal(typeof ctx[f], 'function', f);
+  }
+});
+test('metarDetailHtml renders badge, raw text and altimeter in inHg', () => {
+  const html = ctx.metarDetailHtml({ rawOb: 'KTOL 111852Z 25012KT 10SM FEW250 12/01 A3012', visib: 10, clouds: [{cover:'FEW',base:25000}], altim: 1020, temp: 12, dewp: 1, wdir: 250, wspd: 12 });
+  assert.match(html, /cat-badge cat-VFR/);
+  assert.match(html, /KTOL 111852Z/);
+  assert.match(html, /10 SM/);
+});

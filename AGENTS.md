@@ -45,7 +45,8 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
    - Don't combine `position: sticky` with `overflow: hidden` on the header.
    - Don't size images with `height: 100%` inside flex or grid panes. Use absolute positioning inside a sized pane.
 10. **Keep functions at the top level.** After any large edit, confirm the braces balance and that `fetchData`, `fetchAlerts`, `checkTFRs`, and `fetchWindsAloft` are still global.
-11. **No secrets in the repo.** Netlify tokens and other credentials belong in a secure credential store. Never put them in code, commits, or docs.
+11. **Script order.** The modals (`#briefModal`, `#lookupModal`, `#alertModal`, `#tfrModal`) sit after the inline `<script>`, so `document.getElementById` on them returns `null` while the script runs. Never attach a top-level listener to them — use an inline `on…` attribute or wire it inside a function. One such line threw at load and froze the page on "Loading data…" (v1.32 draft). `npm test` checks for this.
+12. **No secrets in the repo.** Netlify tokens and other credentials belong in a secure credential store. Never put them in code, commits, or docs.
 
 ## Versioning
 

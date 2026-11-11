@@ -36,7 +36,7 @@ check('header version label == version.txt', verSmall === versionTxt, `${verSmal
 // ---- 3. safety disclaimers, word for word, main page + briefing view -------------------
 const DISCLAIMER = 'This information is for situational awareness only. It must not be used for official flight planning. Always obtain a proper weather briefing through approved sources.';
 const disclaimerCount = html.split(DISCLAIMER).length - 1;
-check('disclaimer present at least twice (page banner + briefing view)', disclaimerCount >= 2, `found ${disclaimerCount}`);
+check('disclaimer present at least three times (page banner + briefing view + lookup modal)', disclaimerCount >= 3, `found ${disclaimerCount}`);
 const briefBlock = html.slice(html.indexOf('id="briefModal"'), html.indexOf('class="brief-head"'));
 check('disclaimer is the first thing inside the briefing view', briefBlock.includes(DISCLAIMER));
 
@@ -55,9 +55,28 @@ check('no allow="autoplay" anywhere', !/allow="[^"]*autoplay(?!\s*'none')/i.test
 
 // ---- 6. classroom controls (AGENTS.md rule 8) -----------------------------------------
 const controls = html.slice(html.indexOf('<div class="controls">'), html.indexOf('</header>'));
-const order = ['id="briefBtn"', 'id="fullscreenBtn"', 'id="themeToggle"', 'id="refreshBtn"'].map(s => controls.indexOf(s));
-check('header buttons in order: briefing, fullscreen, theme, refresh', order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])));
-check('briefing + fullscreen buttons are dimmed (opacity 0.55)', (controls.match(/style="opacity:0\.55"/g) || []).length === 2);
+const order = ['id="lookupForm"', 'id="lookupBtn"', 'id="briefBtn"', 'id="fullscreenBtn"', 'id="themeToggle"', 'id="refreshBtn"'].map(s => controls.indexOf(s));
+check('header controls in order: lookup box, lookup icon, briefing, fullscreen, theme, refresh', order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])));
+check('lookup box, lookup icon, briefing + fullscreen are dimmed (opacity 0.55)', (controls.match(/style="opacity:0\.55"/g) || []).length === 4);
+
+// ---- 6a. listeners attached at script load must target elements that precede the script ----
+// The modals live after the inline <script>, so getElementById(...) on them returns null while the
+// script runs; a top-level .addEventListener there throws and stops everything after it (v1.32 bug).
+const scriptStart = html.indexOf(src);
+const beforeScript = html.slice(0, scriptStart);
+const lateTargets = [];
+for (const m of src.matchAll(/^\s{4}document\.getElementById\('([^']+)'\)\.addEventListener/gm)) {
+  if (!new RegExp(`id="${m[1]}"`).test(beforeScript)) lateTargets.push(m[1]);
+}
+check('top-level addEventListener targets exist before the script (no null at load)', lateTargets.length === 0, lateTargets.join(', '));
+
+// ---- 6b. airport lookup (v1.32) ---------------------------------------------------------
+const lookupBlock = html.slice(html.indexOf('id="lookupModal"'), html.indexOf('<!-- NWS Alert Detail Modal -->'));
+check('lookup modal exists', lookupBlock.length > 0);
+check('lookup modal carries the disclaimer word for word', lookupBlock.includes(DISCLAIMER));
+check('lookup modal repeats the text box and Go button', /id="lookupModalInput"/.test(lookupBlock) && /id="lookupModalForm"/.test(lookupBlock));
+check('lookup fetches only on submit (no lookupAirport call at load)', !/^\s*lookupAirport\(/m.test(src));
+check('lookup modal blocks pull-to-refresh', /#lookupModal/.test((src.match(/function ptrBlocked[\s\S]*?\n\s*\}/) || [''])[0]));
 
 // ---- 7. Mobile Safari rules (AGENTS.md rule 9) -----------------------------------------
 const headerCss = ((html.match(/\.header\s*\{[^}]*\}/) || [''])[0]).replace(/\/\*[\s\S]*?\*\//g, '');

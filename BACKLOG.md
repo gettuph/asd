@@ -4,7 +4,6 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Needs a decision
 
-- Add a small text box and a Go button to allow a user to input a airport's location identifier (LOCID) and have the METAR and TAF, if available, pop up in a modal. The modal should also include the text box and go button in case the user wants to check weather at a different airport.
 - Is there a way to add an airport sketch that shows the headwinds, tailwinds, and crosswinds instead of using the table?
 
 ## Fixes and cleanup

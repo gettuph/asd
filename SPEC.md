@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.31** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.32** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -33,7 +33,7 @@ There are 15 airports in three distance groups. Each has ICAO code, name, city, 
 - **Header:** ASD icon (same as the iOS home-screen icon), title, and version. The clock line shows 12-hour local, 24-hour local, and Zulu time, followed by `BG ↑hi° ↓lo°`.
   - Clock colons blink once a second instead of showing running seconds, so the layout doesn't shift.
   - 24-hour time uses `hourCycle: 'h23'`, so midnight shows 00:xx.
-  - Controls: briefing view (dimmed), fullscreen (dimmed, hidden if the browser doesn't support it), light/dark toggle, and refresh.
+  - Controls, left to right: airport lookup box + Go (dimmed; collapses to a dimmed magnifier icon below 700 px), briefing view (dimmed), fullscreen (dimmed, hidden if the browser doesn't support it), light/dark toggle, and refresh.
 - **Tabs, in order:** Airports, Charts, Region, ADS-B, ATC Brief. On desktop, Airports, Charts, and Region show as three equal columns.
 - **Banners, at the top as needed:** new version available, METAR outage, stale data, and TFR.
 
@@ -148,6 +148,17 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 - **Row heights (1400 px and wider):** the METAR row sizes to its content up to 58 vh and the TAF row takes the rest (`grid-template-rows: fit-content(58vh) minmax(0,1fr)`). A typical 3-line METAR and a 7-period TAF both fit at 1080p without scrolling; an unusually long METAR borrows height from the TAF, which then scrolls. Panes scroll instead of clipping.
 - **Images:** positioned absolutely inside their panes so Safari can't overflow the grid. Grid tracks use a minimum of 0.
 
+## 9a. Airport lookup (modal)
+
+- A text box (placeholder `ICAO`, 4 characters) and a Go button in the header. Go or Enter opens a centered modal (max 780 px) with the station's current weather. Below 700 px the box is replaced by a magnifier icon that opens the same modal with the box focused and a prompt to enter an identifier.
+- Top warning, verbatim: "⚠️ This information is for situational awareness only. It must not be used for official flight planning. Always obtain a proper weather briefing through approved sources."
+- The modal header shows the identifier, the station name from AWC when available, and repeats the text box and Go button so another airport can be checked without closing.
+- **Identifier handling (`normalizeIcao`):** trimmed, upper-cased, non-alphanumerics removed. A three-letter alphabetic ID gets a `K` prefix (TOL → KTOL). Anything else is sent as typed (CYYZ, EGLL, 1G0).
+- **Content:** METAR (category badge, raw text, decoded fields including density altitude — the same `metarDetailHtml` block the briefing view uses, with the observation time and age), then the TAF colored by category with its issue time. Missing data shows "No METAR found for XXXX." / "No TAF issued for XXXX."; an unreachable AWC shows "Could not reach Aviation Weather Center. Try again in a moment."
+- **Fetching:** only when Go is pressed, through the existing `/awc/metar/` and `/awc/taf/` proxies (`wxFetch`). Nothing is polled; the 15-airport refresh cycle is unaffected. A newer lookup supersedes a slower earlier one.
+- Closes with ×, Escape, or a click on the backdrop. Pull-to-refresh is blocked inside it.
+- Text size: raw METAR/TAF `clamp(14px, 1.1vw, 22px)`, decoded fields `clamp(13px, 1vw, 19px)`.
+
 ## 10. ADS-B and ATC Brief tabs
 
 - **ADS-B:** an airplanes.live iframe that loads automatically. All Traffic and BGSU Fleet toggles. BGSU Fleet (`filterCallSign=BG`) is the default.
@@ -161,6 +172,7 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 | Radar, prog, and SPC images | 5 min, with a cache-buster |
 | TFR check | 5 min |
 | Version check | 5 min |
+| Airport lookup | on demand only (Go / Enter) |
 | NWS alerts | 15 min |
 | Winds aloft | 60 min |
 | BG high/low (Open-Meteo) | 60 min |
@@ -184,6 +196,7 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 4. Check the layout at phone, iPad portrait, iPad landscape, desktop, and 1920×1080.
 5. Check that remark text (for example `TSNO`, `LTG DSNT`, `FZRANO`) doesn't trigger a weather effect.
 6. All functions stay at the top level. A missing `}` once nested every fetch function inside `renderRegional()` and broke the whole app.
+7. Any element the script touches at load time (top-level `addEventListener`) must appear in the HTML before the `<script>`. The modals come after it; wire them with inline `on…` attributes or inside functions. A top-level listener on the lookup modal once threw at load and froze the whole page on "Loading data…" (caught on the v1.32 draft; now a static check).
 
 ## 14. Open questions
 

@@ -22,6 +22,8 @@ Requires Node 20+. No dependencies to install.
 - Mobile Safari rules (no sticky+overflow on `.header`, briefing images absolutely positioned, zero-minimum grid tracks, `max-content` rows);
 - weather detection splits at ` RMK `; no `rawBody` typo;
 - every `getElementById` target exists in the HTML (or is in the known dynamic list);
+- every top-level `addEventListener` target appears in the HTML before the `<script>` (elements after it are `null` at load);
+- airport lookup: modal exists with the disclaimer, repeats the text box and Go, fetches only on submit, blocks pull-to-refresh;
 - `_redirects` keeps the `?` before `:splat` on AWC rules and covers every proxy path the JS uses;
 - manifest icons exist; no tokens committed anywhere in the repo (root, `site/`, `scripts/`, `tests/`); no `console.log`.
 
@@ -31,7 +33,7 @@ Requires Node 20+. No dependencies to install.
 - `runway.test.js` — headwind/crosswind math, best-runway choice, `RUNWAYS` table sanity.
 - `geo.test.js` — haversine, point-in-polygon, distance to polygon edge, `AIRPORTS` table.
 - `header-weather.test.js` — rain/snow/lightning detection from the METAR body only.
-- `misc.test.js` — winds-aloft decoder, midnight clock, DST abbreviation, NWS alert table, proxy map, top-level entry points.
+- `misc.test.js` — winds-aloft decoder, midnight clock, DST abbreviation, NWS alert table, proxy map, top-level entry points, `normalizeIcao`, `metarDetailHtml`.
 
 ## Adding a test
 
