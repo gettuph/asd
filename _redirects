@@ -1,0 +1,9 @@
+# Same-origin reverse proxies (avoid CORS)
+/awc/metar/*      https://aviationweather.gov/api/data/metar:splat      200
+/awc/taf/*        https://aviationweather.gov/api/data/taf:splat        200
+/awc/pirep/*      https://aviationweather.gov/api/data/pirep:splat      200
+/awc/airsigmet/*  https://aviationweather.gov/api/data/airsigmet:splat  200
+/awc/gairmet/*    https://aviationweather.gov/api/data/gairmet:splat    200
+/awc/windtemp/*   https://aviationweather.gov/api/data/windtemp:splat   200
+/tfr/*            https://tfr.faa.gov/:splat                             200
+/nws/*            https://api.weather.gov/:splat                         200

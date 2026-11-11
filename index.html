@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+
+<!-- Perplexity Computer Attribution — SEO Meta Tags -->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aviation Situation Dashboard v1.30</title>
+  <!-- Favicon & home screen icons -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  <link rel="manifest" href="manifest.json">
+  <!-- Leaflet — used for TFR map modal -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <meta name="theme-color" content="#1a6fa5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ASD">
+  <meta name="description" content="Live aviation weather briefing dashboard for AERT 2800.">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://aviationweather.gov" crossorigin>
+  <link rel="preconnect" href="https://services6.arcgis.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@500,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f3f5f7;
+      --surface: #ffffff;
+      --border: #dde1e6;
+      --text: #1a2332;
+      --text-muted: #5f6b7a;
+      --text-faint: #8e99a8;
+      --primary: #1a6fa5;
+      --primary-hover: #145a87;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --sans: 'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --radius: 8px;
+      --shadow-sm: 0 1px 3px rgba(26,35,50,0.06);
+      --shadow: 0 2px 8px rgba(26,35,50,0.08);
+      --vfr: #2e8b57;
+      --mvfr: #1a6fa5;
+      --ifr: #c0392b;
+      --lifr: #8e44ad;
+      --good-bg: rgba(46,139,87,0.08);
+      --good-border: #2e8b57;
+      --caution-bg: rgba(218,165,32,0.08);
+      --caution-border: #daa520;
+      --warning-bg: rgba(192,57,43,0.08);
+      --warning-border: #c0392b;
+      --info-bg: rgba(26,111,165,0.08);
+      --info-border: #1a6fa5;
+    }
+
+    .dark {
+      --bg: #151a21;
+      --surface: #1c2230;
+      --border: #2a3241;
+      --text: #d0d6df;
+      --text-muted: #7a8594;
+      --text-faint: #4e5a6a;
+      --primary: #4da6db;
+      --primary-hover: #3a8fc0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+      --shadow: 0 2px 8px rgba(0,0,0,0.25);
+      --vfr: #3cb371;
+      --mvfr: #4da6db;
+      --ifr: #e06050;
+      --lifr: #b070d0;
+      --good-bg: rgba(60,179,113,0.12);
+      --caution-bg: rgba(218,165,32,0.12);
+      --warning-bg: rgba(224,96,80,0.12);
+      --info-bg: rgba(77,166,219,0.12);
+    }
+
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: none; }
+    body {
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+      transition: background 2s ease; /* weather/season theme */
+      /* overflow:hidden removed — iOS Safari breaks sticky+overflow with canvas children */
+    }
+    .header-inner {
+      max-width: 1920px; margin: 0 auto;
+      padding: 10px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; position: relative; z-index: 1; }
+    .logo h1 { font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .logo small { font-size: 10px; color: var(--text-muted); }
+    .controls { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+    .icon-btn {
+      background: none; border: none; cursor: pointer; padding: 6px;
+      border-radius: 6px; color: var(--text-muted); display: flex; align-items: center;
+    }
+    .icon-btn:hover { background: var(--border); }
+    .icon-btn svg { width: 16px; height: 16px; }
+
+    /* Status bar */
+    .status { font-size: 10px; color: var(--text-faint); padding: 0 16px; max-width: 1920px; margin: 8px auto 0; }
+
+    /* Tabs (mobile) */
+    .tabs { display: flex; gap: 2px; padding: 0 16px; margin: 10px auto 0; max-width: 1920px; }
+    .tab-btn {
+      flex: 1; padding: 8px 4px; font-size: 11px; font-weight: 600;
+      text-align: center; border: none; background: var(--surface);
+      color: var(--text-muted); cursor: pointer; border-radius: var(--radius) var(--radius) 0 0;
+      border-bottom: 2px solid transparent; transition: all 0.15s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--surface); }
+    .tab-btn:hover:not(.active) { background: var(--border); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Main layout */
+    .main { max-width: 1920px; margin: 0 auto; padding: 12px 16px; }
+
+    @media (min-width: 1024px) {
+      .tabs { display: none; }
+      .tab-content { display: block !important; }
+      .main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+      .bottom-panels { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    }
+
+    .section-title {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow-sm);
+      margin-bottom: 12px; overflow: hidden;
+    }
+    .card-header {
+      padding: 10px 14px; display: flex; align-items: center;
+      justify-content: space-between; gap: 8px;
+    }
+    .card-body { padding: 0 14px 14px; }
+
+    /* Flight category badges */
+    .cat-badge {
+      font-size: 11px; font-weight: 700; color: white; padding: 2px 8px;
+      border-radius: 4px; letter-spacing: 0.02em;
+    }
+    .cat-VFR { background: var(--vfr); }
+    .cat-MVFR { background: var(--mvfr); }
+    .cat-IFR { background: var(--ifr); }
+    .cat-LIFR { background: var(--lifr); }
+
+    .airport-name { font-size: 14px; font-weight: 600; }
+    .airport-sub { font-size: 11px; color: var(--text-muted); }
+    .obs-time { font-size: 11px; color: var(--text-muted); text-align: right; }
+    .obs-ago { font-size: 10px; color: var(--text-faint); }
+    /* NWS alert badges */
+    .alrt-badge   { display:inline-block; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; line-height:1.7; }
+    .alrt-extreme { background:#c0392b; color:#fff; }  /* Tornado Warn, Blizzard, Ice Storm */
+    .alrt-severe  { background:#d35400; color:#fff; }  /* Svr Tstm Warning */
+    .alrt-watch   { background:#d68910; color:#fff; }  /* Any Watch */
+    .alrt-heat    { background:#cb4335; color:#fff; }  /* Heat Advisory / Excessive Heat */
+    .alrt-winter  { background:#2471a3; color:#fff; }  /* Winter Storm, Wind Chill */
+    .alrt-airqual { background:#7d5c0d; color:#fff; }  /* Air Quality Alert */
+    .alrt-fog     { background:#5d6d7e; color:#fff; }  /* Dense Fog Advisory */
+    .alrt-wind    { background:#1f618d; color:#fff; }  /* High Wind / Wind Advisory */
+
+    /* Raw METAR */
+    .raw-metar {
+      font-family: var(--mono); font-size: 12px; line-height: 1.5;
+      background: color-mix(in srgb, var(--border) 30%, transparent);
+      border-radius: 6px; padding: 8px 10px; word-break: keep-all; overflow-wrap: break-word;
+      margin-bottom: 10px;
+    }
+
+    /* Decoded fields grid */
+    .decoded { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 13px; margin-bottom: 10px; }
+    .decoded-item { display: flex; align-items: center; gap: 6px; }
+    .decoded-item svg { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
+    /* Classroom displays: larger METAR/TAF type on wide screens */
+    @media (min-width: 1400px) {
+      .raw-metar { font-size: 15px; }
+      .decoded { font-size: 15px; }
+      .decoded-item svg { width: 16px; height: 16px; }
+      .airport-name { font-size: 17px; }
+      .airport-sub { font-size: 12px; }
+      .obs-time { font-size: 12px; }
+      details summary { font-size: 13px; }
+    }
+
+    /* TAF details */
+    details summary {
+      font-size: 12px; font-weight: 500; color: var(--text-muted);
+      cursor: pointer; margin-bottom: 4px;
+    }
+    details summary:hover { color: var(--text); }
+
+
+    /* Chart images */
+    .chart-img { width: 100%; border-radius: 6px; background: var(--border); }
+
+    @media (min-width: 1024px) {
+      .chart-img { cursor: zoom-in; transition: opacity 0.15s; }
+      .chart-img:hover { opacity: 0.85; }
+    }
+    .lightbox {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; cursor: zoom-out;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+    @media (min-width: 1024px) {
+      .lightbox img { width: min(1400px, 92vw); height: auto; max-height: 88vh; }
+    }
+    .chart-caption { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+
+    /* Chart tabs */
+    .chart-tabs { display: flex; gap: 2px; margin-bottom: 8px; }
+    .chart-tab {
+      flex: 1; padding: 6px 4px; font-size: 11px; font-weight: 600;
+      text-align: center; border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-muted); cursor: pointer; border-radius: 6px; transition: all 0.15s;
+    }
+    .chart-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* Links grid */
+    .link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .link-card {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 8px; background: color-mix(in srgb, var(--border) 30%, transparent);
+      border-radius: 6px; text-decoration: none; color: var(--text);
+      font-size: 11px; font-weight: 500; text-align: center;
+      transition: background 0.15s;
+    }
+    .link-card:hover { background: color-mix(in srgb, var(--border) 50%, transparent); }
+    .link-card svg { width: 20px; height: 20px; color: var(--primary); }
+
+    /* SIGMET / PIREP badges */
+    .badge {
+      font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+      display: inline-block;
+    }
+    .badge-danger { background: var(--ifr); color: white; }
+    .badge-muted { background: var(--border); color: var(--text-muted); }
+    .raw-block {
+      font-family: var(--mono); font-size: 11px; line-height: 1.5;
+      color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* External links */
+    .ext-link {
+      font-size: 11px; color: var(--primary); text-decoration: none;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .ext-link:hover { text-decoration: underline; }
+    .ext-link svg { width: 12px; height: 12px; }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border); margin-top: 32px;
+      padding: 16px 12px; text-align: center; font-size: 10px; color: var(--text-faint);
+    }
+    .footer a { color: var(--primary); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Skeleton */
+    .skeleton { background: linear-gradient(90deg, var(--border) 25%, color-mix(in srgb, var(--border) 50%, transparent) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; height: 180px; }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+    .ptr-spinning { animation: spin 0.7s linear infinite; }
+
+    /* Briefing view — full-screen KTOL METAR/TAF + 12-hr prog + radar, for projection */
+    .brief { display:none; position:fixed; inset:0; z-index:9998; background:var(--bg); color:var(--text); flex-direction:column; }
+    .brief.active { display:flex; }
+    .brief-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 18px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
+    .brief-head h2 { font-size:18px; font-weight:700; margin:0; display:flex; align-items:center; gap:12px; }
+    .brief-head .sub { font-size:13px; color:var(--text-muted); font-weight:400; }
+    .brief-grid { flex:1; min-height:0; display:grid; grid-template-columns:minmax(440px, 0.95fr) minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr) minmax(0,1fr); gap:12px; padding:12px; }
+    .brief-pane.p-metar { grid-column:1; grid-row:1; }
+    .brief-pane.p-taf   { grid-column:1; grid-row:2; }
+    .brief-pane.p-prog  { grid-column:2; grid-row:1 / span 2; }
+    .brief-pane.p-radar { grid-column:3; grid-row:1 / span 2; }
+    .brief-pane { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); min-height:0; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+    .brief-pane .ph { padding:8px 14px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+    .brief-pane .pb { padding:12px 14px; overflow:auto; flex:1; min-height:0; }
+    .brief-pane .pb.img { position:relative; padding:0; overflow:hidden; }
+    .brief-pane .pb.img img { position:absolute; top:6px; left:6px; width:calc(100% - 12px); height:calc(100% - 12px); object-fit:contain; border-radius:4px; }
+    .brief .raw-metar { font-size:clamp(20px, 1.5vw, 30px); line-height:1.5; padding:12px 14px; }
+    .brief .decoded { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 18px; margin-top:12px; }
+    .brief .decoded-item { font-size:clamp(18px, 1.3vw, 26px); }
+    .brief .decoded-item svg { width:1.1em; height:1.1em; }
+    .brief .cat-badge { font-size:clamp(14px, 1vw, 20px) !important; padding:4px 12px !important; }
+    .brief .taf { font-family:var(--mono); font-size:clamp(18px, 1.3vw, 26px); line-height:1.6; white-space:pre-wrap; word-break:break-word; }
+    .brief-pane .ph { font-size:clamp(12px, 0.8vw, 16px); }
+    /* Tablets & small laptops (landscape): 2×2 that fits the screen — METAR | Prog over TAF | Radar */
+    @media (max-width: 1399px) {
+      .brief-grid { grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr) minmax(0,1fr); }
+      .brief-pane.p-metar { grid-column:1; grid-row:1; }
+      .brief-pane.p-prog  { grid-column:2; grid-row:1; }
+      .brief-pane.p-taf   { grid-column:1; grid-row:2; }
+      .brief-pane.p-radar { grid-column:2; grid-row:2; }
+      .brief .raw-metar { font-size:clamp(15px, 1.6vw, 22px); padding:10px 12px; }
+      .brief .decoded { gap:6px 14px; margin-top:10px; }
+      .brief .decoded-item { font-size:clamp(14px, 1.45vw, 20px); }
+      .brief .taf { font-size:clamp(14px, 1.45vw, 20px); }
+    }
+    /* Portrait tablets: text on top, charts below, scrollable */
+    @media (max-width: 1399px) and (orientation: portrait) {
+      .brief-grid { grid-template-rows:none; grid-auto-rows:max-content; overflow-y:auto; -webkit-overflow-scrolling:touch; align-content:start; }
+      .brief-pane.p-metar { grid-column:1; grid-row:1; }
+      .brief-pane.p-taf   { grid-column:2; grid-row:1; }
+      .brief-pane.p-prog  { grid-column:1; grid-row:2; }
+      .brief-pane.p-radar { grid-column:2; grid-row:2; }
+      .brief-pane.p-metar, .brief-pane.p-taf { max-height:55vh; }
+      .brief-pane.p-prog, .brief-pane.p-radar { height:min(60vh, 50vw); }
+      .brief .raw-metar { font-size:clamp(16px, 1.9vw, 24px); }
+      .brief .decoded-item, .brief .taf { font-size:clamp(15px, 1.7vw, 22px); }
+    }
+    /* Phones: single column */
+    @media (max-width: 700px) {
+      .brief-grid { grid-template-columns:minmax(0,1fr); grid-template-rows:none; grid-auto-rows:max-content; overflow-y:auto; -webkit-overflow-scrolling:touch; align-content:start; }
+      .brief-pane.p-metar, .brief-pane.p-taf, .brief-pane.p-prog, .brief-pane.p-radar { grid-column:1; grid-row:auto; max-height:none; }
+      .brief-pane.p-prog, .brief-pane.p-radar { height:min(70vh, 100vw); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Update banner (hidden by default) -->
+  <div id="updateBanner" style="display:none;background:#1a6fa5;color:white;text-align:center;padding:8px 12px;font-size:13px;font-weight:600;line-height:1.4">
+    🔄 A new version is available. <button onclick="location.reload()" style="background:white;color:#1a6fa5;border:none;border-radius:4px;padding:3px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-left:8px">Update Now</button>
+  </div>
+  <!-- Warning banner -->
+  <div style="background:var(--caution-border);color:#1a2332;text-align:center;padding:6px 12px;font-size:12px;font-weight:600;line-height:1.4">⚠️ This information is for situational awareness only. It must not be used for official flight planning. Always obtain a proper weather briefing through approved sources.</div>
+  <!-- API outage banner (hidden by default) -->
+  <div id="outageBanner" style="display:none;background:#5a3e8a;color:white;text-align:center;padding:7px 12px;font-size:13px;font-weight:600;line-height:1.4">
+    🔴 <span id="outageBannerText">METAR DATA UNAVAILABLE — AWC API not responding.</span>
+    Check <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:#c9b8ff;text-decoration:underline">aviationweather.gov</a> directly for current conditions.
+  </div>
+  <!-- Stale METAR banner (hidden by default) -->
+  <div id="staleBanner" style="display:none;background:#7b2d8b;color:white;text-align:center;padding:7px 12px;font-size:13px;font-weight:600;line-height:1.4">
+    🟣 <span id="staleBannerText">DATA MAY BE STALE — ONE OR MORE METARs ARE OLDER THAN 75 MINUTES</span>
+  </div>
+  <!-- TFR banner (hidden by default) -->
+  <div id="tfrBanner" style="display:none;background:var(--ifr);color:white;text-align:center;padding:8px 12px;font-size:13px;font-weight:600;line-height:1.4">
+    ⚠️ <span id="tfrBannerText">TFR ACTIVE OR SCHEDULED WITHIN 75nm OF 1G0</span>
+  </div>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
+        <div>
+          <h1>Aviation Situation Dashboard</h1>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.30&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="icon-btn" id="briefBtn" aria-label="Open KTOL briefing view" title="Briefing view — KTOL METAR, TAF, prog &amp; radar" style="opacity:0.55">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v18"/></svg>
+        </button>
+        <button class="icon-btn" id="fullscreenBtn" aria-label="Enter fullscreen" title="Fullscreen — for class use" style="opacity:0.55">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button class="icon-btn" id="refreshBtn" aria-label="Refresh data">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="status" class="status">Loading data...</div>
+
+  <!-- Mobile tabs -->
+  <nav class="tabs" id="tabNav">
+    <button class="tab-btn active" data-tab="airports">Airports</button>
+    <button class="tab-btn" data-tab="charts">Charts</button>
+    <button class="tab-btn" data-tab="regional">Region</button>
+    <button class="tab-btn" data-tab="adsb">ADS-B</button>
+    <button class="tab-btn" data-tab="preduty">ATC Brief</button>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main" id="mainContent">
+    <div class="tab-content active" id="panel-airports">
+      <div class="section-title">✈ Airport Weather</div>
+      <div class="chart-tabs" id="distTabs">
+        <button class="chart-tab active" data-dist="local">≤ 35 mi</button>
+        <button class="chart-tab" data-dist="area">36–90 mi</button>
+        <button class="chart-tab" data-dist="region">90+ mi</button>
+      </div>
+      <div id="airportCards">
+        <div class="skeleton"></div><div class="skeleton" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="tab-content" id="panel-charts">
+      <div class="section-title">🗺 Charts & Imagery</div>
+      <div id="chartsPanel"></div>
+    </div>
+    <div class="tab-content" id="panel-regional">
+      <div class="section-title">☁ Regional Brief</div>
+      <div id="regionalPanel"></div>
+    </div>
+    <div class="bottom-panels">
+    <div class="tab-content" id="panel-preduty">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📡 ATC Pre-Duty Weather Brief (ZOB)</span>
+        <a href="https://www.cavuwx.com/predutywx/zob/" target="_blank" rel="noopener noreferrer" class="ext-link">Open full page <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+      </div>
+      <div class="card">
+        <div id="predutyIframeWrap" style="padding:0;overflow:hidden;border-radius:var(--radius)">
+          <button id="predutyLoadBtn" type="button" style="width:100%;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--surface);color:var(--text);border:1px dashed var(--border);border-radius:var(--radius);cursor:pointer;padding:28px 16px;font:inherit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:34px;height:34px;color:var(--primary)"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+            <span style="font-size:15px;font-weight:600">Load ATC Pre-Duty Weather Brief</span>
+            <span style="font-size:12px;color:var(--text-muted)">The CAVU briefing video includes audio and is not loaded until you click.</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="tab-content" id="panel-adsb">
+      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>✈️ Live ADS-B Traffic (≤ 10,000ft)</span>
+        <div class="chart-tabs" id="adsbTabs" style="margin:0 12px">
+          <button class="chart-tab" data-adsb="all">All Traffic</button>
+          <button class="chart-tab active" data-adsb="bgsu">BGSU Fleet</button>
+        </div>
+        <a href="https://globe.airplanes.live/?lat=41.39&lon=-83.63&zoom=9&hideSideBar&hideButtons&filterAltMax=10000" target="_blank" rel="noopener noreferrer" class="ext-link">Open full map <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+      </div>
+      <div class="card">
+        <div id="adsbIframeWrap" style="padding:0;overflow:hidden;border-radius:var(--radius)">
+          <iframe id="adsbFrame" data-src="https://globe.airplanes.live/?lat=41.39&lon=-83.63&zoom=9&hideSideBar&filterCallSign=BG&enableLabels&extendedLabels=2" style="width:100%;height:70vh;min-height:500px;border:none;border-radius:var(--radius)" title="airplanes.live - Live ADS-B Traffic Centered on 1G0"></iframe>
+        </div>
+        <div style="padding:8px 14px;font-size:10px;color:var(--text-faint)">Source: <a href="https://airplanes.live" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">airplanes.live</a> — open source, unfiltered ADS-B data. Centered on Bowling Green (1G0).</div>
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <!-- Lightbox overlay (desktop only) -->
+  <div class="lightbox" id="lightbox" onclick="this.classList.remove('active')">
+    <img id="lightboxImg" src="" alt="Enlarged chart">
+    <div style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-size:13px;color:rgba(255,255,255,0.6);pointer-events:none">Click anywhere to close</div>
+  </div>
+
+  <footer class="footer">
+    <p>Data sourced from <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer">aviationweather.gov</a> · For training use only — always use official sources for flight planning</p>
+    <p style="margin-top:4px"><a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a></p>
+  </footer>
+
+  <script>
+    // ========== CONFIG ==========
+    // Distance groups from Bowling Green, OH (1G0)
+    const AIRPORTS = [
+      // ≤35 mi (custom order)
+      { icao: "KTOL", name: "Toledo Express", city: "Toledo, OH", dist: 16, group: "local", lat: 41.5868, lon: -83.8078 },
+      { icao: "KTDZ", name: "Toledo Executive", city: "Toledo, OH", dist: 14, group: "local", lat: 41.5647, lon: -83.4823 },
+      { icao: "KFDY", name: "Findlay", city: "Findlay, OH", dist: 26, group: "local", lat: 41.0141, lon: -83.6693 },
+      { icao: "KDUH", name: "Toledo Suburban", city: "Lambertville, MI", dist: 24, group: "local", lat: 41.7054, lon: -83.4817 },
+      // 36–90 mi (alphabetical)
+      { icao: "KADG", name: "Adrian Lenawee County", city: "Adrian, MI", dist: 69, group: "area", lat: 41.8674, lon: -84.0774 },
+      { icao: "KDTW", name: "Detroit Metro Wayne", city: "Detroit, MI", dist: 60, group: "area", lat: 42.2124, lon: -83.3534 },
+      { icao: "KFWA", name: "Fort Wayne Intl", city: "Fort Wayne, IN", dist: 87, group: "area", lat: 40.9785, lon: -85.1952 },
+      { icao: "KJXN", name: "Jackson County", city: "Jackson, MI", dist: 74, group: "area", lat: 42.2598, lon: -84.4594 },
+      { icao: "KMFD", name: "Mansfield Lahm", city: "Mansfield, OH", dist: 70, group: "area", lat: 40.8214, lon: -82.5166 },
+      // 90+ mi (alphabetical)
+      { icao: "KAZO", name: "Kalamazoo/Battle Creek Intl", city: "Kalamazoo, MI", dist: 115, group: "region", lat: 42.2349, lon: -85.5522 },
+      { icao: "KCLE", name: "Cleveland Hopkins", city: "Cleveland, OH", dist: 92, group: "region", lat: 41.4117, lon: -81.8498 },
+      { icao: "KCMH", name: "John Glenn Columbus Intl", city: "Columbus, OH", dist: 104, group: "region", lat: 39.9980, lon: -82.8919 },
+      { icao: "KDAY", name: "James M. Cox Dayton Intl", city: "Dayton, OH", dist: 107, group: "region", lat: 39.9024, lon: -84.2194 },
+      { icao: "KGRR", name: "Gerald R. Ford Intl", city: "Grand Rapids, MI", dist: 141, group: "region", lat: 42.8808, lon: -85.5228 },
+      { icao: "KMIE", name: "Delaware County Regional", city: "Muncie, IN", dist: 122, group: "region", lat: 40.2423, lon: -85.3958 },
+    ];
+    let activeAptGroup = "local";
+    try { activeAptGroup = localStorage.getItem('asd.group') || "local"; } catch {}
+
+    // NWS alert event types — displayed as badges on METAR cards
+    const ALERT_TYPES = {
+      "Tornado Warning":             { label: "Tornado Warning",      cls: "alrt-extreme" },
+      "Tornado Watch":               { label: "Tornado Watch",        cls: "alrt-watch"   },
+      "Severe Thunderstorm Warning": { label: "Svr Tstm Warning",     cls: "alrt-severe"  },
+      "Severe Thunderstorm Watch":   { label: "Svr Tstm Watch",       cls: "alrt-watch"   },
+      "Excessive Heat Warning":      { label: "Excessive Heat Warning", cls: "alrt-heat"  },
+      "Extreme Heat Warning":         { label: "Extreme Heat Warning",  cls: "alrt-heat"   },
+      "Excessive Heat Watch":        { label: "Excessive Heat Watch", cls: "alrt-watch"   },
+      "Extreme Heat Watch":          { label: "Extreme Heat Watch",    cls: "alrt-watch"   },
+      "Heat Advisory":               { label: "Heat Advisory",        cls: "alrt-heat"    },
+      "Blizzard Warning":            { label: "Blizzard Warning",     cls: "alrt-extreme" },
+      "Winter Storm Warning":        { label: "Winter Storm Warn",    cls: "alrt-winter"  },
+      "Winter Storm Watch":          { label: "Winter Storm Watch",   cls: "alrt-winter"  },
+      "Winter Weather Advisory":     { label: "Winter Wx Advisory",   cls: "alrt-winter"  },
+      "Ice Storm Warning":           { label: "Ice Storm Warning",    cls: "alrt-extreme" },
+      "Wind Chill Warning":          { label: "Wind Chill Warning",   cls: "alrt-winter"  },
+      "Wind Chill Advisory":         { label: "Wind Chill Advisory",  cls: "alrt-winter"  },
+      "Extreme Cold Warning":        { label: "Extreme Cold Warning",  cls: "alrt-winter"  },
+      "Extreme Cold Watch":          { label: "Extreme Cold Watch",    cls: "alrt-watch"   },
+      "Cold Weather Advisory":       { label: "Cold Weather Advisory", cls: "alrt-winter"  },
+      "Dense Fog Advisory":          { label: "Dense Fog Advisory",    cls: "alrt-fog"     },
+      "High Wind Warning":           { label: "High Wind Warning",     cls: "alrt-wind"    },
+      "High Wind Watch":             { label: "High Wind Watch",       cls: "alrt-watch"   },
+      "Wind Advisory":               { label: "Wind Advisory",         cls: "alrt-wind"    },
+      "Air Quality Alert":           { label: "Air Quality Alert",     cls: "alrt-airqual" },
+    };
+
+    // Runway data (source: ourairports.com) — unique headings per airport
+    const RUNWAYS = {
+      KTOL: [{le:"07",he:"25",le_hdg:67,he_hdg:247,len:10600},{le:"16",he:"34",le_hdg:157,he_hdg:337,len:5599}],
+      KTDZ: [{le:"04",he:"22",le_hdg:39,he_hdg:219,len:3799},{le:"14",he:"32",le_hdg:134,he_hdg:314,len:5829}],
+      KFDY: [{le:"07",he:"25",le_hdg:69,he_hdg:249,len:5883},{le:"18",he:"36",le_hdg:180,he_hdg:0,len:6499}],
+      KDTW: [{le:"03/04",he:"21/22",le_hdg:29,he_hdg:209,len:12003},{le:"09L",he:"27R",le_hdg:89,he_hdg:269,len:8708}],
+      KMFD: [{le:"05",he:"23",le_hdg:47,he_hdg:227,len:6819},{le:"14",he:"32",le_hdg:137,he_hdg:317,len:9001}],
+      KFWA: [{le:"05",he:"23",le_hdg:44,he_hdg:224,len:11981},{le:"09",he:"27",le_hdg:90,he_hdg:270,len:4001},{le:"14",he:"32",le_hdg:135,he_hdg:315,len:8002}],
+      KCLE: [{le:"06L/R",he:"24L/R",le_hdg:50,he_hdg:230,len:9953},{le:"10",he:"28",le_hdg:93,he_hdg:273,len:6018}],
+      KCMH: [{le:"10L/R",he:"28L/R",le_hdg:94,he_hdg:274,len:10114}],
+      KDAY: [{le:"06L/R",he:"24L/R",le_hdg:55,he_hdg:235,len:10901},{le:"18",he:"36",le_hdg:179,he_hdg:359,len:8502}],
+      KGRR: [{le:"08L/R",he:"26L/R",le_hdg:81,he_hdg:261,len:10001},{le:"17",he:"35",le_hdg:171,he_hdg:351,len:8501}],
+      KADG: [{le:"05",he:"23",le_hdg:47,he_hdg:227,len:5001},{le:"11",he:"29",le_hdg:107,he_hdg:287,len:1779}],
+      KAZO: [{le:"05",he:"23",le_hdg:45,he_hdg:225,len:3438},{le:"09",he:"27",le_hdg:90,he_hdg:270,len:2800},{le:"17",he:"35",le_hdg:171,he_hdg:351,len:6502}],
+      KDUH: [{le:"09",he:"27",le_hdg:87,he_hdg:267,len:4807}],
+      KJXN: [{le:"07",he:"25",le_hdg:51,he_hdg:231,len:5351},{le:"14",he:"32",le_hdg:133,he_hdg:313,len:4000}],
+      KMIE: [{le:"03",he:"21",le_hdg:16,he_hdg:196,len:5198},{le:"14",he:"32",le_hdg:136,he_hdg:316,len:6500}],
+    };
+
+    // Calculate wind components for a runway
+    function windComponents(windDir, windSpd, rwyHdg) {
+      if (windDir == null || windSpd == null || windSpd === 0) return { headwind: 0, crosswind: 0, tailwind: false, side: "" };
+      const diff = ((windDir - rwyHdg + 540) % 360) - 180; // -180 to +180
+      const rad = diff * Math.PI / 180;
+      const hw = Math.round(windSpd * Math.cos(rad));
+      const xw = Math.round(windSpd * Math.abs(Math.sin(rad)));
+      return {
+        headwind: Math.abs(hw),
+        crosswind: xw,
+        tailwind: hw < 0,
+        side: Math.sin(rad) >= 0 ? "R" : "L"
+      };
+    }
+
+    // Pick best runway end (le or he) for wind
+    function rwyWindAnalysis(rwy, windDir, windSpd) {
+      const compLe = windComponents(windDir, windSpd, rwy.le_hdg);
+      const compHe = windComponents(windDir, windSpd, rwy.he_hdg);
+      // Use the end with headwind (not tailwind)
+      if (!compLe.tailwind) return { rwy: rwy.le, comp: compLe, pair: `${rwy.le}/${rwy.he}`, len: rwy.len };
+      return { rwy: rwy.he, comp: compHe, pair: `${rwy.le}/${rwy.he}`, len: rwy.len };
+    }
+    const AWC = "https://aviationweather.gov/api/data";
+    const IDS = AIRPORTS.map(a => a.icao).join(",");
+
+    // Netlify reverse proxy paths (same-origin, no CORS issues)
+    // Falls back to third-party proxies when running locally
+    const AWC_PROXY_MAP = {
+      "metar": "/awc/metar/",
+      "taf": "/awc/taf/",
+      "pirep": "/awc/pirep/",
+      "airsigmet": "/awc/airsigmet/",
+      "gairmet": "/awc/gairmet/",
+    };
+
+    // fetch() with an AbortController timeout — used by every non-AWC request
+    function fetchT(url, ms = 8000, opts = {}) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
+    }
+
+    async function wxFetch(url) {
+      // 1. Try Netlify reverse proxy (same-origin, fast)
+      for (const [key, proxyPath] of Object.entries(AWC_PROXY_MAP)) {
+        if (url.includes(`/data/${key}?`)) {
+          const qs = url.split("?")[1] || "";
+          try {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 10000);
+            const r = await fetch(proxyPath + qs, { signal: ctrl.signal });
+            clearTimeout(t);
+            if (r.ok) { const txt = await r.text(); return JSON.parse(txt); }
+          } catch {}
+          break;
+        }
+      }
+      // 2. Try direct (works for file:// or non-Netlify hosting)
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 800);
+        const r = await fetch(url, { signal: ctrl.signal, mode: "cors" });
+        clearTimeout(t);
+        if (r.ok) { const txt = await r.text(); return JSON.parse(txt); }
+      } catch {}
+      // 3. Fallback to third-party proxies
+      const PROXIES = [
+        { url: "https://api.codetabs.com/v1/proxy/?quest=", type: "raw" },
+        { url: "https://api.allorigins.win/get?url=", type: "envelope" },
+      ];
+      for (const p of PROXIES) {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 6000);
+          const r = await fetch(p.url + encodeURIComponent(url), { signal: ctrl.signal });
+          clearTimeout(t);
+          if (!r.ok) continue;
+          if (p.type === "envelope") {
+            const env = await r.json();
+            return JSON.parse(env.contents);
+          }
+          return await r.json();
+        } catch { continue; }
+      }
+      console.warn("wxFetch: all methods failed for", url);
+      return null;
+    }
+    // AWC list endpoints must return an array; anything else (null, HTML, {error}) is a failure.
+    const asList = v => (Array.isArray(v) ? v : null);
+
+    let darkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    try { const v = localStorage.getItem('asd.dark'); if (v !== null) darkMode = v === '1'; } catch {}
+    // Follow OS theme changes only when the user hasn't chosen explicitly
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener('change', e => {
+      try { if (localStorage.getItem('asd.dark') !== null) return; } catch {}
+      darkMode = e.matches; applyTheme(); _lastThemeKey = null; render();
+    });
+    let weatherData = { metars: [], tafs: [], pireps: [], sigmets: [], gairmets: [], suas: [], windsAloft: null, alerts: {}, tfrData: [] };
+
+    // Distance from 1G0 to nearest point in a polygon (coords array)
+    const BG_LAT = 41.39, BG_LON = -83.63;
+    function haversineNm(lat1, lon1, lat2, lon2) {
+      const R = 3440.065, toRad = Math.PI / 180;
+      const dlat = (lat2 - lat1) * toRad, dlon = (lon2 - lon1) * toRad;
+      const a = Math.sin(dlat/2)**2 + Math.cos(lat1*toRad) * Math.cos(lat2*toRad) * Math.sin(dlon/2)**2;
+      return R * 2 * Math.asin(Math.sqrt(a));
+    }
+    function minDistToCoords(coords) {
+      if (!coords || !coords.length) return 99999;
+      let min = 99999;
+      for (const c of coords) {
+        const d = haversineNm(BG_LAT, BG_LON, parseFloat(c.lat), parseFloat(c.lon));
+        if (d < min) min = d;
+      }
+      return min;
+    }
+    // Ray-casting point-in-polygon on [{lat,lon}] rings.
+    function pointInPolygon(lat, lon, coords) {
+      if (!coords || coords.length < 3) return false;
+      let inside = false;
+      for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+        const yi = parseFloat(coords[i].lat), xi = parseFloat(coords[i].lon);
+        const yj = parseFloat(coords[j].lat), xj = parseFloat(coords[j].lon);
+        if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) inside = !inside;
+      }
+      return inside;
+    }
+    // Distance (nm) from 1G0 to the nearest polygon EDGE (not just vertices),
+    // using a local equirectangular projection — accurate to well under 1% at these ranges.
+    function minDistToPolygon(coords) {
+      if (!coords || !coords.length) return 99999;
+      if (pointInPolygon(BG_LAT, BG_LON, coords)) return 0;
+      const k = Math.cos(BG_LAT * Math.PI / 180), NM = 60;
+      const px = 0, py = 0;
+      let min = 99999;
+      for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+        const ax = (parseFloat(coords[j].lon) - BG_LON) * k * NM, ay = (parseFloat(coords[j].lat) - BG_LAT) * NM;
+        const bx = (parseFloat(coords[i].lon) - BG_LON) * k * NM, by = (parseFloat(coords[i].lat) - BG_LAT) * NM;
+        const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+        const t = len2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2)) : 0;
+        const d = Math.hypot(ax + t * dx - px, ay + t * dy - py);
+        if (d < min) min = d;
+      }
+      return min;
+    }
+
+    // ========== HELPERS ==========
+    function parseTs(val) {
+      if (!val && val !== 0) return null;
+      if (typeof val === "number") return new Date(val < 1e12 ? val * 1000 : val);
+      return new Date(val);
+    }
+    function fmtZulu(val) {
+      const d = parseTs(val); if (!d || isNaN(d)) return "—";
+      return `${String(d.getUTCHours()).padStart(2,"0")}${String(d.getUTCMinutes()).padStart(2,"0")}Z`;
+    }
+    function timeAgo(val) {
+      const d = parseTs(val); if (!d || isNaN(d)) return "";
+      const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+      if (mins < 0 || mins > 2880) return "";
+      if (mins < 1) return "<span style='color:var(--vfr)'>just now</span>";
+      if (mins <= 60) return `<span style='color:var(--vfr)'>${mins}m ago</span>`;
+      if (mins <= 74) return `<span style='color:var(--caution-border)'>${mins}m ago</span>`;
+      if (mins < 120) return `<span style='color:var(--ifr)'>${mins}m ago</span>`;
+      return `<span style='color:var(--ifr)'>${Math.floor(mins/60)}h ${mins%60}m ago</span>`;
+    }
+    function fmtTemp(c) { return c == null ? "—" : `${c}°C (${Math.round(c*9/5+32)}°F)`; }
+    function fmtAlt(a) {
+      if (!a) return "—";
+      const inHg = a > 100 ? a * 0.02953 : a;
+      return `${inHg.toFixed(2)}" Hg`;
+    }
+    // Density Altitude: PA = (29.92 - altim_inHg) * 1000 + elev_ft; ISA at PA = 15 - (PA/1000)*2; DA = PA + 120*(OAT - ISA)
+    function fmtDA(temp, altimRaw, elevM) {
+      if (temp == null || !altimRaw || elevM == null) return null;
+      const inHg = altimRaw > 100 ? altimRaw * 0.02953 : altimRaw;
+      const elevFt = elevM * 3.28084;
+      const pa = (29.92 - inHg) * 1000 + elevFt;
+      const isaAtPA = 15 - (pa / 1000) * 2;
+      return Math.round(pa + 120 * (temp - isaAtPA));
+    }
+    function fmtWind(m) {
+      if (!m) return "Calm";
+      const s = m.wspd, d = m.wdir, g = m.wgst;
+      if (!s || s === 0) return "Calm";
+      if (d === "VRB") return `Variable at ${s} kt${g ? `, gusting ${g} kt` : ""}`;
+      return `${String(d).padStart(3,"0")}° at ${s} kt${g ? `, gusting ${g} kt` : ""}`;
+    }
+    function getCeil(clouds) {
+      if (!clouds) return null;
+      for (const c of clouds) {
+        if (["BKN","OVC","VV","OVX"].includes(c.cover || c.type)) return c.base ?? c.alt ?? null;
+      }
+      return null;
+    }
+    const SKY_LABELS = { FEW: "Few", SCT: "Scattered", BKN: "Broken", OVC: "Overcast", VV: "Indefinite", OVX: "Indefinite", SKC: "Clear", CAVOK: "CAVOK", NSC: "No Sig Clouds" };
+    function skyDesc(clouds) {
+      if (!clouds || clouds.length === 0) return "Clear";
+      const significant = clouds.filter(c => !["CLR","SKC","NSC","CAVOK"].includes(c.cover || c.type));
+      // Check for CLR specifically
+      const hasCLR = clouds.some(c => (c.cover || c.type) === "CLR");
+      if (significant.length === 0) return hasCLR ? "Clear below 12,000 ft" : "Clear";
+      // Return description of lowest significant layer
+      const lowest = significant.reduce((a,b) => (a.base??a.alt??0) <= (b.base??b.alt??0) ? a : b);
+      const cover = lowest.cover || lowest.type || "";
+      const base = lowest.base ?? lowest.alt ?? null;
+      const label = SKY_LABELS[cover] || cover;
+      const isCeiling = ["BKN","OVC","VV","OVX"].includes(cover);
+      return base != null ? `${label}${isCeiling ? " ceiling" : ""} at ${base} ft` : label;
+    }
+    function getCat(vis, ceil) {
+      const v = vis ?? 999, c = ceil ?? 99999;
+      if (v < 1 || c < 500) return "LIFR";
+      if (v < 3 || c < 1000) return "IFR";
+      if (v <= 5 || c <= 3000) return "MVFR";
+      return "VFR";
+    }
+    function getMetar(metars, icao) {
+      return metars.filter(m => m.icaoId === icao).sort((a,b) => (b.obsTime||0) - (a.obsTime||0))[0];
+    }
+    function getTaf(tafs, icao) {
+      return tafs.find(t => t.icaoId === icao);
+    }
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    // Parse a TAF line segment to determine flight category
+    function tafLineCat(line) {
+      // Extract visibility: look for P6SM, \dSM, \d/\dSM patterns
+      let vis = 999;
+      // Anchor to whitespace so a time group like "1318/1320" can never be read as
+      // the whole-number part of "1320 1/2SM"; allow a leading M ("less than").
+      const visMatch = line.match(/(?:^|\s)(P6SM|M?\d\/\d+SM|\d+ \d\/\d+SM|\d+SM)(?=\s|$)/);
+      if (visMatch) {
+        let v = visMatch[1];
+        const lessThan = v.startsWith("M");
+        if (lessThan) v = v.slice(1);
+        if (v === "P6SM") vis = 7;
+        else if (v.includes("/") && !v.includes(" ")) {
+          // Fraction like 1/2SM
+          const parts = v.replace("SM", "").split("/");
+          vis = parseInt(parts[0]) / parseInt(parts[1]);
+        } else if (v.includes(" ")) {
+          // Mixed like 1 1/2SM
+          const [whole, frac] = v.replace("SM", "").split(" ");
+          const fp = frac.split("/");
+          vis = parseInt(whole) + parseInt(fp[0]) / parseInt(fp[1]);
+        } else {
+          vis = parseInt(v.replace("SM", ""));
+        }
+        if (lessThan) vis -= 0.01; // M1/4SM is strictly less than 1/4 → LIFR
+      }
+      // Extract ceiling: BKN, OVC, or VV followed by 3 digits (hundreds of ft)
+      let ceil = 99999;
+      const cloudRegex = /\b(BKN|OVC|VV)(\d{3})\b/g;
+      let cm;
+      while ((cm = cloudRegex.exec(line)) !== null) {
+        const base = parseInt(cm[2]) * 100;
+        if (base < ceil) ceil = base;
+      }
+      return getCat(vis, ceil);
+    }
+
+    // Color-code TAF text by flight category per period
+    function colorTaf(raw) {
+      const catColors = { VFR: "var(--vfr)", MVFR: "var(--mvfr)", IFR: "var(--ifr)", LIFR: "var(--lifr)" };
+      // Split into periods at FM, TEMPO, BECMG, PROB
+      const lines = raw.replace(/\s+(FM\d{6}|TEMPO\s|BECMG\s|PROB\d{2}\s)/g, '\n$1').split('\n');
+      return lines.map(line => {
+        const escaped = esc(line);
+        const cat = tafLineCat(line);
+        const c = catColors[cat];
+        return `<span style="color:${c};font-weight:500">${escaped}</span>`;
+      }).join('\n');
+    }
+
+    // ========== RENDER ==========
+    function renderAirportsOnly() {
+      const metars = Array.isArray(weatherData.metars) ? weatherData.metars : [];
+      const tafs = Array.isArray(weatherData.tafs) ? weatherData.tafs : [];
+      const outage = weatherData.metarOutage || false;
+      let cardsHtml = "";
+      for (const apt of AIRPORTS.filter(a => a.group === activeAptGroup)) {
+        const m = getMetar(metars, apt.icao);
+        if (!m && !outage) continue;
+        cardsHtml += renderAirportCard(apt, m, getTaf(tafs, apt.icao));
+      }
+      setHTMLPreservingDetails(document.getElementById("airportCards"), cardsHtml);
+    }
+    // Open <details data-key> elements survive innerHTML rebuilds (TAF, Runway winds, SUA).
+    let _openKeys = new Set();
+    function setHTMLPreservingDetails(container, html) {
+      container.querySelectorAll('details[data-key][open]').forEach(d => _openKeys.add(d.dataset.key));
+      container.querySelectorAll('details[data-key]:not([open])').forEach(d => _openKeys.delete(d.dataset.key));
+      container.innerHTML = html;
+      container.querySelectorAll('details[data-key]').forEach(d => { if (_openKeys.has(d.dataset.key)) d.open = true; });
+    }
+    function renderAirportCard(apt, m, t) {
+      const vis = m ? m.visib : null;
+      const ceil = m ? getCeil(m.clouds || []) : null;
+      const cat = m ? (m.fltCat || getCat(vis, ceil)) : null;
+
+      let html = `<div class="card">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0">
+            ${cat ? `<span class="cat-badge cat-${cat}">${cat}</span>` : ""}
+            <div style="min-width:0">
+              <div class="airport-name">${esc(apt.icao)}</div>
+              <div class="airport-sub">${esc(apt.name)} · ${esc(apt.city)}${apt.dist ? ` · ${apt.dist} mi` : ""}</div>
+            </div>
+          </div>
+          ${m ? `<div style="text-align:right;flex-shrink:0">
+            <div class="obs-time">${fmtZulu(m.obsTime || m.reportTime)}</div>
+            <div class="obs-ago">${timeAgo(m.obsTime || m.reportTime)}</div>
+            ${(weatherData.alerts[apt.icao]||[]).length ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end">${(weatherData.alerts[apt.icao]).map((a,i)=>`<span class="alrt-badge ${a.cls}" onclick="showAlertModal(weatherData.alerts['${apt.icao}'][${i}])" style="cursor:pointer" title="${esc(a.headline||a.event)}">${esc(a.label)}</span>`).join("")}</div>` : ""}
+          </div>` : ""}
+        </div>
+        <div class="card-body">`;
+
+      if (!m) {
+        const outageMsg = weatherData.metarOutage
+          ? `AWC API not responding — no METAR data available. Check <a href="https://aviationweather.gov/metar/data?ids=${esc(apt.icao)}" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">aviationweather.gov</a> directly.`
+          : "No current METAR available";
+        html += `<p style="font-size:12px;color:var(--text-muted)">${outageMsg}</p>`;
+        // Still show TAF during outage if available
+        if (t && t.rawTAF) {
+          html += `<details data-key="taf-${apt.icao}" style="margin-top:8px"><summary>TAF — tap to expand</summary><div class="raw-metar" style="white-space:pre-wrap">${colorTaf(t.rawTAF)}</div></details>`;
+        }
+      } else {
+        const da = fmtDA(m.temp, m.altim, m.elev);
+        html += `<div class="raw-metar">${esc(m.rawOb || "—")}</div>
+        <div class="decoded">
+          <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>${esc(fmtWind(m))}</div>
+          <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${vis != null ? vis+" SM" : "—"}</div>
+          <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>${skyDesc(m.clouds || [])}</div>
+          <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>${fmtAlt(m.altim)}</div>
+          <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>T ${fmtTemp(m.temp)}</div>
+          <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>DP ${fmtTemp(m.dewp)}</div>
+          ${da != null ? `<div class="decoded-item" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/><line x1="12" y1="9" x2="12" y2="21"/></svg>DA ${da.toLocaleString()} ft</div>` : ""}
+        </div>`;
+
+        if (t && t.rawTAF) {
+          html += `<details data-key="taf-${apt.icao}"><summary>TAF — tap to expand</summary><div class="raw-metar" style="white-space:pre-wrap">${colorTaf(t.rawTAF)}</div></details>`;
+        }
+
+        // Runway wind components — shown whenever runway data exists (calm shows a note)
+        const rwys = RUNWAYS[apt.icao];
+        if (rwys && m) {
+          html += `<details data-key="rwy-${apt.icao}" style="margin-bottom:8px"><summary style="font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer">Runway winds</summary>
+          <div style="margin-top:6px;display:grid;gap:4px;font-size:12px">`;
+          if (!m.wspd || m.wspd === 0) {
+            // Calm winds — section still visible so students know it exists
+            html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text-muted)">Calm — no crosswind component</div>`;
+          } else if (m.wdir === "VRB") {
+            // Variable winds — crosswind component cannot be determined
+            html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text-muted)">Variable at ${m.wspd} kt${m.wgst ? ", gusting " + m.wgst + " kt" : ""} — crosswind component indeterminate</div>`;
+          } else {
+            // Build list of all runway ends
+            const ends = [];
+            for (const rwy of rwys) {
+              ends.push({ name: rwy.le, hdg: rwy.le_hdg, len: rwy.len });
+              ends.push({ name: rwy.he, hdg: rwy.he_hdg, len: rwy.len });
+            }
+            ends.forEach((e, i) => {
+              const c = windComponents(m.wdir, m.wspd, e.hdg);
+              const xwColor = c.crosswind >= 15 ? "var(--ifr)" : c.crosswind >= 10 ? "var(--caution-border)" : "var(--text-muted)";
+              const hwLabel = c.tailwind ? `<span style="color:var(--ifr)">Tailwind ${c.headwind} kt</span>` : `Headwind ${c.headwind} kt`;
+              const xwLabel = c.crosswind > 0 ? `<span style="color:${xwColor}">XW ${c.crosswind} kt ${c.side}</span>` : `<span style="color:var(--text-muted)">XW 0 kt</span>`;
+              html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <span style="font-weight:600;min-width:48px">Rwy ${esc(e.name)}</span>
+                <span>${hwLabel} · ${xwLabel}</span>
+              </div>`;
+            });
+          }
+          html += `</div></details>`;
+        }
+
+      }
+
+
+
+      html += `</div></div>`;
+      return html;
+    }
+
+    function renderCharts() {
+      return `
+        <div class="card">
+          <div class="card-header">
+            <strong style="font-size:14px">Radar</strong>
+            <a href="https://radar.weather.gov/" target="_blank" rel="noopener noreferrer" class="ext-link">Full radar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+          </div>
+          <div class="card-body">
+            <div class="chart-tabs" id="radarTabs">
+              <button class="chart-tab active" data-radar="centgrlakes">Central GL</button>
+              <button class="chart-tab" data-radar="kdtx">Detroit</button>
+              <button class="chart-tab" data-radar="kcle">Cleveland</button>
+              <button class="chart-tab" data-radar="kiwx">Ft Wayne</button>
+            </div>
+            <img id="radarImg" src="https://radar.weather.gov/ridge/standard/CENTGRLAKES_loop.gif" alt="NEXRAD Radar" class="chart-img" loading="lazy">
+            <div class="chart-caption" id="radarCaption">Central Great Lakes Mosaic — NOAA/NWS NEXRAD</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <strong style="font-size:14px">Surface Analysis & Prog Charts</strong>
+            <a href="https://aviationweather.gov/gfa/?tab=progchart" target="_blank" rel="noopener noreferrer" class="ext-link">AWC GFA <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+          </div>
+          <div class="card-body">
+            <div class="chart-tabs" id="progTabs">
+              <button class="chart-tab active" data-prog="sfc">Sfc</button>
+              <button class="chart-tab" data-prog="12hr">12hr</button>
+              <button class="chart-tab" data-prog="24hr">24hr</button>
+              <button class="chart-tab" data-prog="48hr">48hr</button>
+            </div>
+            <img id="progImg" src="https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif" alt="Surface Analysis" class="chart-img" loading="lazy">
+            <div class="chart-caption" id="progCaption">WPC Surface Analysis</div>
+            <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px">FREEZING LEVEL, ICING & TURBULENCE (AWC GFA — opens in new tab)</div>
+              <div class="link-grid">
+                <a href="https://aviationweather.gov/gfa/?tab=ice&prodType=frzlvl" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                  Freezing Level
+                </a>
+                <a href="https://aviationweather.gov/gfa/?tab=ice&prodType=icsev" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><path d="M8 16h.01M8 20h.01M12 18h.01M12 22h.01M16 16h.01M16 20h.01"/></svg>
+                  CIP Icing
+                </a>
+                <a href="https://aviationweather.gov/gfa/?tab=ice&prodType=icprob" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                  Icing Prob
+                </a>
+                <a href="https://aviationweather.gov/gfa/?tab=turb" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+                  Turbulence
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <strong style="font-size:14px">Convective &amp; Center Wx</strong>
+            <a href="https://www.spc.noaa.gov/products/outlook/" target="_blank" rel="noopener noreferrer" class="ext-link">SPC Outlooks <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+          </div>
+          <div class="card-body">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">SPC Day 1 Convective Outlook</div>
+            <img id="spcImg" src="https://www.spc.noaa.gov/products/outlook/day1otlk.png" alt="SPC Day 1 Convective Outlook" class="chart-img" loading="lazy">
+            <div class="chart-caption">Storm Prediction Center — Day 1 Categorical Convective Outlook</div>
+            <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Center Weather Advisories (AWC)</div>
+              <div class="link-grid">
+                <a href="https://forecast.weather.gov/product.php?site=NWS&issuedby=ZOB&product=CWA&format=CI&version=1&glossary=0" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  ZOB CWAs
+                </a>
+                <a href="https://forecast.weather.gov/product.php?site=NWS&issuedby=&product=CWA&format=CI&version=1&glossary=0" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  CWA (All Centers)
+                </a>
+                <a href="https://aviationweather.gov/gfa/?tab=conv" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
+                  AWC Convective
+                </a>
+                <a href="https://www.spc.noaa.gov/products/outlook/" target="_blank" rel="noopener noreferrer" class="link-card">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  SPC Day 1–3
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function renderRegional() {
+      document.querySelectorAll('#regionalPanel details[data-key]').forEach(d => { d.open ? _openKeys.add(d.dataset.key) : _openKeys.delete(d.dataset.key); });
+      const allPireps = Array.isArray(weatherData.pireps) ? weatherData.pireps : [];
+      const pireps = allPireps.filter(p => {
+        if (p.lat == null || p.lon == null) return false;
+        if (haversineNm(BG_LAT, BG_LON, p.lat, p.lon) > 150) return false;
+        // Only at or below 10,000 ft
+        const fl = p.fltLvl != null ? p.fltLvl : 999;
+        return fl <= 100; // fltLvl is in hundreds of feet
+      }).slice(0, 10);
+      const sigmets = Array.isArray(weatherData.sigmets) ? weatherData.sigmets : [];
+      let html = "";
+
+      // SUA Schedule (MOAs and Restricted Areas within 150nm) — at top
+      const suas = Array.isArray(weatherData.suas) ? weatherData.suas : [];
+      if (suas.length > 0) {
+        html += `<div class="card">
+          <details data-key="sua">
+            <summary style="list-style:none;cursor:pointer;padding:10px 14px;display:flex;align-items:center;gap:8px;user-select:none">
+              <strong style="font-size:14px">🛡 Special Use Airspace</strong>
+              <span style="font-size:11px;color:var(--caution-border);flex:1;text-align:center">⚠️ Always check NOTAMs</span>
+              <span class="sua-toggle" style="font-size:11px;color:var(--primary);white-space:nowrap" onclick="var d=this.closest('details');setTimeout(()=>{this.textContent=d.open?'Click to close ◄':'Click to view ▼'},0)">${_openKeys.has('sua') ? 'Click to close ◄' : 'Click to view ▼'}</span>
+            </summary>
+            <div class="card-body">
+            <div style="background:var(--caution-bg);border-left:3px solid var(--caution-border);border-radius:0 6px 6px 0;padding:6px 10px;margin-bottom:10px;font-size:11px;color:var(--text)">⚠️ SUA may be activated outside published hours. Verify status with the controlling agency before flight.</div>`;
+        for (const s of suas) {
+          const typeName = (s.TYPE_CODE === "M" || s.TYPE_CODE === "MOA") ? "MOA" : s.TYPE_CODE === "R" ? "Restricted" : s.TYPE_CODE === "P" ? "Prohibited" : "SUA";
+          const altLow = s.LOWER_VAL || "SFC";
+          const altHigh = s.UPPER_VAL ? `${s.UPPER_VAL} ${s.UPPER_UOM || "FT"} ${s.UPPER_CODE || ""}` : "";
+          const times = s.TIMESOFUSE || "See NOTAM";
+
+
+          html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span><span class="badge ${(s.TYPE_CODE === 'M' || s.TYPE_CODE === 'MOA') ? 'badge-muted' : 'badge-danger'}">${esc(typeName)}</span> <strong style="margin-left:4px">${esc(s.NAME)}</strong></span>
+            </div>
+            <div style="margin-top:4px;font-size:11px;color:var(--text-muted)">${esc(altLow)} – ${esc(altHigh)}</div>
+            <div style="font-size:11px;color:var(--text-muted)">Schedule: ${esc(times)}</div>
+          </div>`;
+        }
+        html += `</div></details></div>`;
+      }
+
+      // Winds Aloft (FWA, CLE, CMH — at/below 9000ft)
+      const wa = weatherData.windsAloft;
+      if (wa && wa.stations && Object.keys(wa.stations).length > 0) {
+        const ageMin = wa.fetchedAt ? Math.floor((Date.now() - wa.fetchedAt) / 60000) : null;
+        const isStale = ageMin !== null && ageMin > 120; // stale if > 2 hours since fetch
+        const staleColor = isStale ? "var(--ifr)" : "var(--text-faint)";
+        const validLabel = wa.validStr.replace("VALID ","").replace(" FOR USE"," · for use").replace(/\.\s*TEMPS NEG ABV \d+/i, "");
+        html += `<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:14px">💨 Winds Aloft (≤ 9,000 ft)</strong>
+          <span style="font-size:10px;color:${staleColor}">${esc(validLabel)}${ageMin !== null ? ` · fetched ${ageMin}m ago` : ""}</span>
+        </div><div class="card-body">`;
+        html += `<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)">`;
+        html += `<thead><tr style="color:var(--text-muted);font-size:11px">`;
+        html += `<th style="text-align:left;padding:4px 6px">Station</th>`;
+        for (const alt of FD_ALTS) {
+          html += `<th style="text-align:center;padding:4px 6px">${alt.toLocaleString()}ft</th>`;
+        }
+        html += `</tr></thead><tbody>`;
+        for (const sid of FD_STATIONS) {
+          const rows = wa.stations[sid];
+          if (!rows) continue;
+          const locNames = {FWA:"Fort Wayne",CLE:"Cleveland",CMH:"Columbus"};
+          html += `<tr style="border-top:1px solid var(--border)">`;
+          html += `<td style="padding:6px 6px;font-weight:600">${esc(sid)}<br><span style="font-size:10px;font-weight:400;color:var(--text-muted)">${esc(locNames[sid]||"")} </span></td>`;
+          for (const col of rows) {
+            if (!col || col.dir === undefined) {
+              html += `<td style="text-align:center;padding:6px">—</td>`;
+            } else if (col.dir === "L&V") {
+              html += `<td style="text-align:center;padding:6px;color:var(--vfr)">L&amp;V</td>`;
+            } else {
+              const tmpStr = col.tmp !== null ? `<br><span style="font-size:10px;color:var(--text-muted)">${col.tmp > 0 ? '+' : ''}${col.tmp}°C</span>` : "";
+              html += `<td style="text-align:center;padding:6px">${col.dir.toString().padStart(3,"0")}°/${col.spd}kt${tmpStr}</td>`;
+            }
+          }
+          html += `</tr>`;
+        }
+        html += `</tbody></table></div></div>`;
+      }
+
+      // SIGMETs within 150nm of 1G0
+      const nearbySigmets = sigmets.filter(s => minDistToPolygon(s.coords || []) <= 150);
+      html += `<div class="card"><div class="card-header"><strong style="font-size:14px">⚠ SIGMETs (within 150nm of 1G0)</strong></div><div class="card-body">`;
+      if (nearbySigmets.length > 0) {
+        for (const s of nearbySigmets) {
+          html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px">
+            <span class="badge badge-danger">${esc(s.airSigmetType || "SIGMET")}</span>
+            <span style="color:var(--text-muted);margin-left:6px">${esc(s.alphaChar || "")} ${esc(s.hazard || "")}</span>
+            <div style="margin-top:4px;font-family:var(--mono);font-size:11px;color:var(--text-muted);line-height:1.5;white-space:pre-wrap">${esc(s.rawAirSigmet || "")}</div>
+          </div>`;
+        }
+      } else {
+        html += `<p style="font-size:12px;color:var(--text-muted);font-style:italic">No SIGMETs are valid within 150nm of 1G0.</p>`;
+      }
+      html += `</div></div>`;
+
+      // G-AIRMETs within 150nm of 1G0 and at/below 10,000 ft (FL100)
+      const gairmets = Array.isArray(weatherData.gairmets) ? weatherData.gairmets : [];
+      const seenAirmetKeys = new Set();
+      const nearbyAirmets = gairmets.filter(a => {
+        if (minDistToPolygon(a.coords || []) > 150) return false;
+        const top = a.top ? parseInt(a.top) : null;
+        if (top !== null && top > 100) return false;
+        // Deduplicate by tag + product + hazard + forecastHour
+        const key = `${a.tag}_${a.product}_${a.hazard}_${a.forecastHour}`;
+        if (seenAirmetKeys.has(key)) return false;
+        seenAirmetKeys.add(key);
+        return true;
+      });
+      html += `<div class="card"><div class="card-header"><strong style="font-size:14px">⚠ AIRMETs (below 10,000ft, within 150nm of 1G0)</strong></div><div class="card-body">`;
+      if (nearbyAirmets.length > 0) {
+        for (const a of nearbyAirmets) {
+          const topStr = a.top ? `FL${a.top}` : "";
+          const baseStr = a.base || "SFC";
+          const lvl = topStr ? `${baseStr}–${topStr}` : baseStr;
+          // Build readable AIRMET text from structured data
+          const hazNames = { ICE:"Icing", "TURB-LO":"Low-Level Turbulence", "TURB-HI":"High-Level Turbulence", IFR:"IFR Conditions", MT_OBSC:"Mountain Obscuration", SFC_WND:"Strong Surface Winds", LLWS:"Low-Level Wind Shear", FZLVL:"Freezing Level", M_FZLVL:"Multiple Freezing Levels" };
+          const hazLabel = hazNames[a.hazard] || a.hazard || "";
+          const validTime = a.validTime ? new Date(a.validTime).toUTCString().replace(/.*,\s/, "").replace(/:00 GMT/, "Z") : "";
+          const fcstHr = a.forecastHour != null ? `+${a.forecastHour}hr forecast` : "";
+          let textParts = [`AIRMET ${esc(a.product || "")} — ${esc(hazLabel)}`];
+          if (lvl) textParts.push(`Altitude: ${esc(lvl)}`);
+          if (a.due_to) textParts.push(`Due to: ${esc(a.due_to)}`);
+          if (a.severity) textParts.push(`Severity: ${esc(a.severity)}`);
+          if (a.frequency) textParts.push(`Frequency: ${esc(a.frequency)}`);
+          if (validTime) textParts.push(`Valid: ${esc(validTime)} (${esc(fcstHr)})`);
+          if (a.fzlbase || a.fzltop) textParts.push(`Freezing level: ${esc(a.fzlbase || "SFC")}–FL${esc(a.fzltop || "???")}`);
+          html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px">
+            <span class="badge badge-muted">${esc(a.product || "AIRMET")}</span>
+            <span style="color:var(--text-muted);margin-left:6px">${esc(a.hazard || "")} ${lvl ? "· " + lvl : ""}</span>
+            <div style="margin-top:4px;font-family:var(--mono);font-size:11px;color:var(--text-muted);line-height:1.6;white-space:pre-wrap">${textParts.join("\n")}</div>
+          </div>`;
+        }
+      } else {
+        html += `<p style="font-size:12px;color:var(--text-muted);font-style:italic">No AIRMETs are valid below 10,000ft within 150nm of 1G0.</p>`;
+      }
+      html += `</div></div>`;
+
+      html += `<div class="card"><div class="card-header"><strong style="font-size:14px">📡 PIREPs (within 150nm of 1G0)</strong></div><div class="card-body">`;
+      if (pireps.length > 0) {
+        for (const p of pireps) {
+          const urgent = (p.rawOb || "").includes("SEV") || (p.rawOb || "").includes("UUA") || p.pirepType === "URGENT";
+          const fl = p.fltLvl != null ? String(p.fltLvl).padStart(3, "0") : "???";
+          // Build decoded details
+          const details = [];
+          if (p.tbInt1) details.push(`TB: ${p.tbInt1}${p.tbType1 ? " " + p.tbType1 : ""}${p.tbFreq1 ? " " + p.tbFreq1 : ""}`);
+          if (p.icgInt1 && p.icgInt1 !== "NEG") details.push(`IC: ${p.icgInt1}${p.icgType1 ? " " + p.icgType1 : ""}`);
+          else if (p.icgInt1 === "NEG") details.push("IC: NEG");
+          if (p.wxString) details.push(`WX: ${p.wxString}`);
+          html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px">
+            <span class="badge ${urgent ? "badge-danger" : "badge-muted"}">${urgent ? "URGENT" : "PIREP"}</span>
+            <span style="color:var(--text-muted);margin-left:6px">${esc(p.acType || "")} · FL${esc(fl)}</span>
+            ${details.length ? `<div style="margin-top:3px;font-size:11px;color:var(--text)">${esc(details.join(" | "))}</div>` : ""}
+            <div class="raw-block" style="margin-top:4px">${esc(p.rawOb || "")}</div>
+          </div>`;
+        }
+      } else {
+        html += `<p style="font-size:12px;color:var(--text-muted);font-style:italic">No recent PIREPs in the area.</p>`;
+      }
+      html += `</div></div>`;
+      return html;
+    }
+
+    // ========== DATA FETCH ==========
+    async function fetchBGForecast() {
+      try {
+        const url = 'https://api.open-meteo.com/v1/forecast' +
+          '?latitude=41.39&longitude=-83.63' +
+          '&daily=temperature_2m_max,temperature_2m_min' +
+          '&temperature_unit=fahrenheit&timezone=America%2FNew_York&forecast_days=1';
+        const r = await fetchT(url);
+        if (!r.ok) return;
+        const d = await r.json();
+        const hi = Math.round(d.daily.temperature_2m_max[0]);
+        const lo = Math.round(d.daily.temperature_2m_min[0]);
+        const el = document.getElementById('bgForecast');
+        if (el) {
+          el.textContent = `BG ↑${hi}° ↓${lo}°`;
+          document.getElementById('bgForecastWrap').style.display = 'inline';
+        }
+      } catch (e) { /* silently fail — forecast is supplementary */ }
+    }
+
+    let _fetchInFlight = null;
+    function fetchData() {
+      if (_fetchInFlight) return _fetchInFlight;           // coalesce overlapping calls
+      _fetchInFlight = _fetchDataInner().finally(() => { _fetchInFlight = null; });
+      return _fetchInFlight;
+    }
+    async function _fetchDataInner() {
+      if (document.hidden && weatherData.lastFetch) return; // resume on visibilitychange
+      document.getElementById("refreshBtn").querySelector("svg").style.animation = "spin 0.6s linear infinite";
+      try {
+        const [metarRes, tafRes, pirepRes, sigRes, gairRes] = await Promise.allSettled([
+          wxFetch(`${AWC}/metar?ids=${IDS}&format=json`),
+          wxFetch(`${AWC}/taf?ids=${IDS}&format=json`),
+          wxFetch(`${AWC}/pirep?format=json&bbox=38,-87,43,-80&hours=3`),
+          wxFetch(`${AWC}/airsigmet?format=json`),
+          wxFetch(`${AWC}/gairmet?format=json`),
+        ]);
+        const val = r => (r.status === "fulfilled" ? asList(r.value) : null);
+        const newMetars = val(metarRes);
+        // Outage = fetch failed, returned non-JSON/non-array, or 0 METARs for every airport
+        const metarOutage = !newMetars || newMetars.length === 0;
+        // Keep last-known-good data for every product when its fetch fails
+        if (!metarOutage) weatherData.metars = newMetars;
+        const tafs = val(tafRes), pireps = val(pirepRes), sigmets = val(sigRes), gairmets = val(gairRes);
+        if (tafs)     weatherData.tafs     = tafs;
+        if (pireps)   weatherData.pireps   = pireps;
+        if (sigmets)  weatherData.sigmets  = sigmets;
+        if (gairmets) weatherData.gairmets = gairmets;
+        weatherData.metarOutage = metarOutage;
+        // AWC is sometimes slow for a single request — retry once after 8 s before waiting out the 2-min cycle
+        const needRetry = metarOutage || (!tafs && !(weatherData.tafs || []).length);
+        if (needRetry && !weatherData._outageRetried) { weatherData._outageRetried = true; setTimeout(fetchData, 8000); }
+        else if (!needRetry) weatherData._outageRetried = false;
+
+        // Show/hide outage banner
+        document.getElementById("outageBanner").style.display = metarOutage ? "block" : "none";
+
+        // Fetch SUA data (non-blocking, cached separately)
+        if (!weatherData._suaLoaded) fetchSUA();
+
+        const m = Array.isArray(weatherData.metars) ? weatherData.metars.length : 0;
+        const t = Array.isArray(weatherData.tafs) ? weatherData.tafs.length : 0;
+        if (!metarOutage) weatherData.lastFetch = Date.now();
+        const statusEl = document.getElementById("status");
+        if (metarOutage) {
+          statusEl.textContent = `AWC METAR API unavailable — retrying in 2 min. ${t} TAFs loaded. ${m > 0 ? `Last known: ${m} METARs` : ''}`;
+          statusEl.style.color = 'var(--ifr)';
+        } else {
+          statusEl.textContent = `Data fetched: ${new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',timeZoneName:'short'})} · ${m} METARs · ${t} TAFs · Auto-refresh 2 min`;
+          statusEl.style.color = 'var(--vfr)';
+        }
+      } catch (e) {
+        document.getElementById("status").textContent = `Error fetching data: ${e.message}`;
+        document.getElementById("status").style.color = 'var(--ifr)';
+      }
+      document.getElementById("refreshBtn").querySelector("svg").style.animation = "";
+      render();
+      checkStaleMETARs();
+    }
+
+    // ========== WINDS ALOFT ==========
+    const FD_STATIONS = ["FWA", "CLE", "CMH"];
+    const FD_ALTS = [3000, 6000, 9000];
+
+    function decodeFdEntry(entry) {
+      entry = (entry || "").trim();
+      if (!entry) return null;
+      if (entry === "9900") return { dir: "L&V", spd: 0, tmp: null };
+      const m = entry.match(/^(\d{4})([+-]\d{2})?$/);
+      if (!m) return null;
+      let dd = parseInt(m[1].slice(0, 2));
+      let ss = parseInt(m[1].slice(2));
+      const tmp = m[2] ? parseInt(m[2]) : null;
+      if (dd > 36) { dd -= 50; ss += 100; } // high-speed encoding
+      return { dir: dd * 10, spd: ss, tmp };
+    }
+
+    async function fetchWindsAloft() {
+      try {
+        const okText = r => (r.ok ? r.text() : null);
+        const raw = await fetchT("/awc/windtemp/", 8000).then(okText).catch(() => null)
+          || await fetchT("https://aviationweather.gov/api/data/windtemp", 8000).then(okText).catch(() => null);
+        if (!raw || raw.includes('"error"') || /<html/i.test(raw)) return;
+        const lines = raw.split("\n");
+        // Parse valid time
+        let validStr = "";
+        let fetchedAt = Date.now();
+        for (const l of lines) {
+          if (l.includes("VALID") && l.includes("FOR USE")) { validStr = l.trim(); break; }
+        }
+        // Extract expiry from the "FOR USE HHMM-HHMM" window end time
+        const useTm = validStr.match(/FOR USE \d{4}-(\d{4})Z/);
+        const validTm = validStr.match(/VALID (\d{2})(\d{2})(\d{2})Z/);
+        let validEpoch = null;
+        if (useTm && validTm) {
+          const day = parseInt(validTm[1]);
+          const endHH = parseInt(useTm[1].slice(0,2));
+          const endMM = parseInt(useTm[1].slice(2,4));
+          const now = new Date();
+          // End time is on same day as the VALID day
+          let epoch = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, endHH, endMM, 0);
+          // If the computed epoch is more than 12 hours in the past, it's likely next month
+          if (Date.now() - epoch > 12 * 3600000) {
+            epoch = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, day, endHH, endMM, 0);
+          }
+          validEpoch = epoch;
+        }
+        // Parse station rows
+        const result = { validStr, validEpoch, fetchedAt, stations: {} };
+        for (const sid of FD_STATIONS) {
+          for (const l of lines) {
+            if (l.trimStart().startsWith(sid + " ")) {
+              const cols = l.trim().split(/\s+/);
+              result.stations[sid] = FD_ALTS.map((alt, i) => ({
+                alt,
+                ...decodeFdEntry(cols[i + 1]) // col 0 = station id
+              }));
+              break;
+            }
+          }
+        }
+        // Only replace the last good table if at least one station row parsed
+        if (Object.keys(result.stations).length) { weatherData.windsAloft = result; render(); }
+      } catch(e) { console.warn("Winds aloft fetch failed:", e); }
+    }
+
+    // ========== SUA FETCH ==========
+    async function fetchSUA() {
+      try {
+        // Query MOAs (M), Restricted (R), and Prohibited (P) areas near 1G0
+        // Bounding box ~75nm around BG: lat 41.39 ± 1.25, lon -83.63 ± 1.5
+        const suaUrl = "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Special_Use_Airspace/FeatureServer/0/query" +
+          "?where=TYPE_CODE+IN+('M','MOA','R','P')" +
+          "&geometry=-85.13,40.14,-82.13,42.64" +
+          "&geometryType=esriGeometryEnvelope" +
+          "&spatialRel=esriSpatialRelIntersects" +
+          "&outFields=NAME,TYPE_CODE,UPPER_VAL,UPPER_UOM,UPPER_CODE,LOWER_VAL,LOWER_UOM,LOWER_CODE,TIMESOFUSE,STATE,COMM_NAME" +
+          "&f=json";
+        // ArcGIS supports CORS — fetch directly with a sane timeout instead of the 800 ms wxFetch path
+        const r = await fetchT(suaUrl, 10000);
+        if (!r.ok) return;
+        const data = await r.json();
+        const features = Array.isArray(data.features) ? data.features : [];
+        if (!features.length) return; // leave _suaLoaded false so the next cycle retries
+        // Filter to only R-5502A, R-5502B, and Stinger MOA
+        const targetSUA = ["R-5502A", "R-5502B", "STINGER"];
+        const seen = new Set();
+        weatherData.suas = [];
+        for (const f of features) {
+          const a = f.attributes || {};
+          const name = (a.NAME || "").toUpperCase();
+          if (!targetSUA.some(t => name.includes(t))) continue;
+          const key = `${a.NAME}_${a.LOWER_VAL}_${a.UPPER_VAL}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          weatherData.suas.push(a);
+        }
+        weatherData.suas.sort((a, b) => (a.NAME || "").localeCompare(b.NAME || ""));
+        weatherData._suaLoaded = true;
+        render(); // Re-render to show SUA
+      } catch (e) {
+        console.warn("SUA fetch failed:", e);
+      }
+    }
+
+    // ========== TFR CHECK ==========
+    async function checkTFRs() {
+      if (document.hidden) return;
+      try {
+        const r = await fetchT("/tfr/geoserver/TFR/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=TFR:V_TFR_LOC&outputFormat=application/json&maxFeatures=200");
+        if (!r.ok) return;
+        const data = await r.json();
+        const features = data.features || [];
+        const nearby = [];
+        for (const f of features) {
+          const g = f.geometry || {};
+          // Normalise Polygon / MultiPolygon to a list of outer rings of [lon,lat] pairs
+          let rings = [];
+          if (g.type === 'MultiPolygon') rings = (g.coordinates || []).map(poly => poly[0] || []);
+          else if (g.type === 'Polygon') rings = [g.coordinates?.[0] || []];
+          else { const c = g.coordinates || []; rings = [Array.isArray(c[0]?.[0]) ? c[0] : c]; }
+          rings = rings.filter(r => Array.isArray(r) && r.length && typeof r[0][0] === 'number');
+          if (!rings.length) continue;
+          // Nearest edge (or inside) of any ring — a 30 nm-radius TFR is caught even when its centroid is far
+          const dist = Math.min(...rings.map(r => minDistToPolygon(r.map(p => ({ lat: p[1], lon: p[0] })))));
+          if (dist <= 75) {
+            const props = f.properties || {};
+            const title = (props.TITLE || "Unknown TFR").split(",")[0];
+            const key = props.NOTAM_KEY || "";
+            let detailUrl = "https://tfr.faa.gov/tfr3/";
+            if (key) {
+              const kParts = key.split("/");
+              if (kParts.length === 2) {
+                const series = kParts[0];
+                const num = kParts[1].split("-")[0];
+                detailUrl = `https://tfr.faa.gov/tfr3/#detail/${series}/${num}`;
+              }
+            }
+            nearby.push({ title, detailUrl, feature: f });
+          }
+        }
+        const banner = document.getElementById("tfrBanner");
+        weatherData.tfrData = nearby; // store for modal
+        if (nearby.length > 0) {
+          const links = nearby.map((t, i) =>
+            `<a href="javascript:void(0)" onclick="showTFRModal(weatherData.tfrData[${i}])" style="color:white;text-decoration:underline;cursor:pointer">${esc(t.title)}</a>`
+          ).join(" · ");
+          document.getElementById("tfrBannerText").innerHTML =
+            `⚠️ ${nearby.length} TFR${nearby.length > 1 ? "s" : ""} ACTIVE OR SCHEDULED WITHIN 75nm OF 1G0 — ${links}`;
+          banner.style.display = "block";
+        } else {
+          banner.style.display = "none";
+        }
+      } catch (e) {
+        console.warn("TFR check failed:", e);
+      }
+    }
+
+    // Age-color the status bar
+    function updateStatusColor() {
+      if (!weatherData.lastFetch || weatherData.metarOutage) return;
+      const age = (Date.now() - weatherData.lastFetch) / 60000;
+      const el = document.getElementById("status");
+      if (age < 2) el.style.color = 'var(--vfr)';
+      else if (age < 5) el.style.color = '#daa520';
+      else if (age < 10) el.style.color = '#e07020';
+      else el.style.color = 'var(--ifr)';
+    }
+    function checkStaleMETARs() {
+      const metars = Array.isArray(weatherData.metars) ? weatherData.metars : [];
+      const tafs = Array.isArray(weatherData.tafs) ? weatherData.tafs : [];
+      const now = Date.now();
+
+      // Stale METARs: observation 75+ minutes old AND data has been refreshed recently
+      // Only flag if we've already done at least one successful fetch (lastFetch is set)
+      // This prevents false positives on first load before data arrives
+      const staleMetars = (!weatherData.lastFetch) ? [] : metars.filter(m => {
+        const d = parseTs(m.obsTime || m.reportTime);
+        return d && !isNaN(d) && (now - d.getTime()) / 60000 >= 75;
+      });
+
+      // Stale/expired TAFs: only flag when validTimeTo is in the past (truly expired)
+      const staleTafs = tafs.filter(t => {
+        return t.validTimeTo && t.validTimeTo * 1000 < now;
+      });
+
+      const banner = document.getElementById("staleBanner");
+      const issues = [];
+      if (staleMetars.length > 0)
+        issues.push(`METAR${staleMetars.length > 1 ? "s" : ""} ≥ 75 min old: ${staleMetars.map(m => m.icaoId).join(", ")}`);
+      if (staleTafs.length > 0)
+        issues.push(`TAF${staleTafs.length > 1 ? "s" : ""} stale/expired: ${staleTafs.map(t => t.icaoId).join(", ")}`);
+
+      // Stale winds aloft: FD product valid time has expired
+      const wa = weatherData.windsAloft;
+      if (wa && wa.validEpoch && wa.validEpoch < now) {
+        issues.push("Winds aloft product has expired");
+      }
+
+      if (issues.length > 0) {
+        document.getElementById("staleBannerText").innerHTML =
+          `DATA MAY BE STALE — ${issues.join(" · ")} — Check <a href="https://aviationweather.gov/" target="_blank" rel="noopener noreferrer" style="color:white;text-decoration:underline">aviationweather.gov</a> directly for current conditions.`;
+        banner.style.display = "block";
+      } else {
+        banner.style.display = "none";
+      }
+    }
+    setInterval(updateStatusColor, 15000);
+    setInterval(checkStaleMETARs, 60000);
+
+    let chartsInitialized = false;
+    function render() {
+      const { metars, tafs } = weatherData;
+      const filtered = AIRPORTS.filter(a => a.group === activeAptGroup);
+      let cardsHtml = "";
+      const outage = weatherData.metarOutage || false;
+      for (const apt of filtered) {
+        const m = getMetar(Array.isArray(metars) ? metars : [], apt.icao);
+        // During API outage show all airports; otherwise hide those without a METAR
+        if (!m && !outage) continue;
+        const t = getTaf(Array.isArray(tafs) ? tafs : [], apt.icao);
+        cardsHtml += renderAirportCard(apt, m, t);
+      }
+      // S3-9: don't wipe the loading skeleton before the first METAR fetch has finished
+      const firstLoadPending = !weatherData.lastFetch && !outage && cardsHtml === "";
+      if (!firstLoadPending) {
+        setHTMLPreservingDetails(document.getElementById("airportCards"), cardsHtml);
+      }
+      // Charts are static (image URLs don't change with weather data).
+      // Only initialize once — prevents radar/prog tab state from resetting
+      // on every 2-minute auto-refresh and stops duplicate event listener buildup.
+      if (!chartsInitialized) {
+        document.getElementById("chartsPanel").innerHTML = renderCharts();
+        setupProgTabs();
+        setupRadarTabs();
+        chartsInitialized = true;
+        if (activeRadarKey !== 'centgrlakes' && RADAR_URLS[activeRadarKey]) {
+          document.querySelectorAll("#radarTabs .chart-tab").forEach(b => b.classList.toggle("active", b.dataset.radar === activeRadarKey));
+          document.getElementById("radarImg").src = RADAR_URLS[activeRadarKey][0];
+          document.getElementById("radarCaption").textContent = RADAR_URLS[activeRadarKey][1];
+        }
+      }
+      setHTMLPreservingDetails(document.getElementById("regionalPanel"), renderRegional());
+      renderBriefModal(false);
+      applyHeaderTheme(getMetar(Array.isArray(weatherData.metars) ? weatherData.metars : [], 'KTOL'));
+    }
+
+    // ========== PROG CHART TABS ==========
+    const PROG_URLS = {
+      sfc: ["https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif", "WPC Surface Analysis"],
+      "12hr": ["https://www.wpc.ncep.noaa.gov/noaa/noaad1.gif", "12-Hour Surface Prog"],
+      "24hr": ["https://www.wpc.ncep.noaa.gov/noaa/noaad2.gif", "24-Hour Surface Prog"],
+      "48hr": ["https://www.wpc.ncep.noaa.gov/noaa/noaad3.gif", "48-Hour Surface Prog"],
+    };
+
+    const RADAR_URLS = {
+      centgrlakes: ["https://radar.weather.gov/ridge/standard/CENTGRLAKES_loop.gif", "Central Great Lakes Mosaic — NOAA/NWS NEXRAD"],
+      kdtx: ["https://radar.weather.gov/ridge/standard/KDTX_loop.gif", "KDTX Detroit/Pontiac — 79 NM from 1G0"],
+      kcle: ["https://radar.weather.gov/ridge/standard/KCLE_loop.gif", "KCLE Cleveland — 80 NM from 1G0"],
+      kiwx: ["https://radar.weather.gov/ridge/standard/KIWX_loop.gif", "KIWX North Webster, IN — 93 NM from 1G0"],
+    };
+
+    // Re-request the currently displayed radar / prog / SPC images with a cache-buster so a
+    // classroom display never shows a frozen radar loop. Called every 5 min and on manual refresh.
+    let activeRadarKey = 'centgrlakes', activeProgKey = 'sfc';
+    try { const k = localStorage.getItem('asd.radar'); if (k && RADAR_URLS[k]) activeRadarKey = k; } catch {}
+    const SPC_URL = 'https://www.spc.noaa.gov/products/outlook/day1otlk.png';
+    function refreshCharts() {
+      if (document.hidden) return;
+      const bust = url => url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+      const set = (id, url) => { const el = document.getElementById(id); if (el) el.src = bust(url); };
+      if (RADAR_URLS[activeRadarKey]) set('radarImg', RADAR_URLS[activeRadarKey][0]);
+      if (PROG_URLS[activeProgKey])   set('progImg',  PROG_URLS[activeProgKey][0]);
+      set('spcImg', SPC_URL);
+    }
+
+    function setupRadarTabs() {
+      document.querySelectorAll("#radarTabs .chart-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#radarTabs .chart-tab").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          const key = btn.dataset.radar;
+          activeRadarKey = key;
+          try { localStorage.setItem('asd.radar', key); } catch {}
+          const [url, caption] = RADAR_URLS[key];
+          document.getElementById("radarImg").src = url;
+          document.getElementById("radarCaption").textContent = caption;
+        });
+      });
+    }
+
+    function setupProgTabs() {
+      document.querySelectorAll("#progTabs .chart-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#progTabs .chart-tab").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          const key = btn.dataset.prog;
+          activeProgKey = key;
+          const [url, caption] = PROG_URLS[key];
+          document.getElementById("progImg").src = url;
+          document.getElementById("progCaption").textContent = caption;
+        });
+      });
+    }
+
+    // ========== ADS-B VIEW SWITCHING ==========
+    const ADSB_URLS = {
+      all: "https://globe.airplanes.live/?lat=41.39&lon=-83.63&zoom=9&hideSideBar&hideButtons&filterAltMax=10000",
+      bgsu: "https://globe.airplanes.live/?lat=41.39&lon=-83.63&zoom=9&hideSideBar&filterCallSign=BG&enableLabels&extendedLabels=2",
+    };
+    document.querySelectorAll("#adsbTabs .chart-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#adsbTabs .chart-tab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const frame = document.getElementById("adsbFrame");
+        frame.dataset.src = ADSB_URLS[btn.dataset.adsb];
+        frame.src = ADSB_URLS[btn.dataset.adsb];
+      });
+    });
+
+    // ========== DISTANCE TAB SWITCHING ==========
+    document.querySelectorAll("#distTabs .chart-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#distTabs .chart-tab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeAptGroup = btn.dataset.dist;
+        try { localStorage.setItem('asd.group', activeAptGroup); } catch {}
+        renderAirportsOnly();
+      });
+    });
+
+    // Reflect the persisted airport group in the tab strip
+    document.querySelectorAll("#distTabs .chart-tab").forEach(b => b.classList.toggle("active", b.dataset.dist === activeAptGroup));
+
+    // ========== TAB SWITCHING ==========
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
+      });
+    });
+
+    // ========== DARK MODE ==========
+    function applyTheme() {
+      document.documentElement.classList.toggle("dark", darkMode);
+      document.getElementById("themeToggle").innerHTML = darkMode
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    }
+    applyTheme();
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      darkMode = !darkMode; applyTheme();
+      try { localStorage.setItem('asd.dark', darkMode ? '1' : '0'); } catch {}
+      _lastThemeKey = null;
+      applyHeaderTheme(getMetar(Array.isArray(weatherData.metars) ? weatherData.metars : [], 'KTOL'));
+    });
+
+    // Fullscreen toggle
+    (function () {
+      const btn = document.getElementById('fullscreenBtn');
+      if (!btn) return;
+      const canFs = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+      if (!canFs) { btn.style.display = 'none'; return; }
+      btn.addEventListener('click', () => {
+        const inFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        if (!inFs) {
+          const el = document.documentElement;
+          const p = (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+          if (p && p.catch) p.catch(() => {});
+        } else {
+          const p = (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+          if (p && p.catch) p.catch(() => {});
+        }
+      });
+      const update = () => {
+        const inFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        btn.setAttribute('aria-label', inFs ? 'Exit fullscreen' : 'Enter fullscreen');
+        btn.style.opacity = inFs ? '1' : '0.55';
+        btn.querySelector('svg').innerHTML = inFs
+          ? '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>'
+          : '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
+      };
+      document.addEventListener('fullscreenchange', update);
+      document.addEventListener('webkitfullscreenchange', update);
+    }());
+
+    // ========== REFRESH ==========
+    function refreshAll() {
+      fetchData();
+      fetchBGForecast();
+      refreshCharts();
+      checkTFRs();
+      fetchWindsAloft();
+      setTimeout(fetchAlerts, 3000); // let weather load first
+      // Manual refresh restarts the 2-min cycle so it doesn't fire again seconds later
+      clearInterval(_dataTimer);
+      _dataTimer = setInterval(fetchData, 120000);
+    }
+    document.getElementById("refreshBtn").addEventListener("click", refreshAll);
+
+    // ========== CHART LIGHTBOX (desktop only) ==========
+    {
+      document.addEventListener('click', e => {
+        if (window.innerWidth >= 1024 && (e.target.classList.contains('chart-img') || (e.target.tagName === 'IMG' && e.target.closest('#briefModal')))) {
+          document.getElementById('lightboxImg').src = e.target.src;
+          document.getElementById('lightbox').classList.add('active');
+        }
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('active');
+      });
+    }
+
+    // ========== DEFERRED IFRAME LOADING ==========
+    // Load iframes only when they scroll into view (desktop) or tab is tapped (mobile)
+    // Pre-duty brief embeds a video that auto-plays; only create the iframe when asked
+    document.getElementById('predutyLoadBtn').addEventListener('click', () => {
+      const wrap = document.getElementById('predutyIframeWrap');
+      const f = document.createElement('iframe');
+      f.id = 'predutyFrame';
+      f.src = 'https://www.cavuwx.com/predutywx/zob/';
+      f.title = 'ATC Pre-Duty Weather Brief - Cleveland Center (ZOB)';
+      f.style.cssText = 'width:100%;height:70vh;min-height:500px;border:none;border-radius:var(--radius)';
+      wrap.innerHTML = '';
+      wrap.appendChild(f);
+    });
+
+    function loadDeferredIframes() {
+      document.querySelectorAll('iframe[data-src]').forEach(iframe => {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && !iframe.src) {
+              iframe.src = iframe.dataset.src;
+              observer.disconnect();
+            }
+          });
+        }, { rootMargin: '200px' });
+        observer.observe(iframe);
+      });
+    }
+
+    // ========== VERSION CHECK ==========
+    const CURRENT_VERSION = "v1.30";
+    async function checkForUpdate() {
+      try {
+        const r = await fetch("/version.txt?t=" + Date.now());
+        if (!r.ok) return;
+        const latest = (await r.text()).trim();
+        if (latest && latest !== CURRENT_VERSION) {
+          document.getElementById("updateBanner").style.display = "block";
+        }
+      } catch {}
+    }
+    // Check on load and every 5 minutes
+    checkForUpdate();
+    setInterval(checkForUpdate, 300000);
+
+    // ========== BRIEFING VIEW (KTOL) ==========
+    const BRIEF_PROG_URL  = "https://www.wpc.ncep.noaa.gov/noaa/noaad1.gif";
+    const BRIEF_RADAR_URL = "https://radar.weather.gov/ridge/standard/CENTGRLAKES_loop.gif";
+    let _briefLastOb = null;
+    function briefOpen() { return document.getElementById('briefModal').classList.contains('active'); }
+    function renderBriefModal(force) {
+      if (!briefOpen()) return;
+      const m = getMetar(Array.isArray(weatherData.metars) ? weatherData.metars : [], 'KTOL');
+      const t = getTaf(Array.isArray(weatherData.tafs) ? weatherData.tafs : [], 'KTOL');
+      const obKey = (m && m.rawOb || '') + '|' + (t && t.rawTAF || '');
+      if (!force && obKey === _briefLastOb) return; // nothing changed — don't disturb the display
+      _briefLastOb = obKey;
+
+      const mEl = document.getElementById('briefMetar');
+      if (m) {
+        const vis = m.visib, ceil = getCeil(m.clouds || []);
+        const cat = m.fltCat || getCat(vis, ceil);
+        const da = fmtDA(m.temp, m.altim, m.elev);
+        document.getElementById('briefMetarTime').innerHTML = `${esc(fmtZulu(m.obsTime || m.reportTime))} · ${timeAgo(m.obsTime || m.reportTime)}`;
+        mEl.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span class="cat-badge cat-${cat}" style="font-size:14px;padding:3px 10px">${cat}</span>
+            ${(weatherData.alerts.KTOL||[]).map(a=>`<span class="alrt-badge ${a.cls}" style="font-size:11px">${esc(a.label)}</span>`).join('')}</div>
+          <div class="raw-metar">${esc(m.rawOb || '—')}</div>
+          <div class="decoded">
+            <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>${esc(fmtWind(m))}</div>
+            <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${vis != null ? esc(vis) + ' SM' : '—'}</div>
+            <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>${esc(skyDesc(m.clouds || []))}</div>
+            <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>${fmtAlt(m.altim)}</div>
+            <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>T ${fmtTemp(m.temp)}</div>
+            <div class="decoded-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>DP ${fmtTemp(m.dewp)}</div>
+            ${da != null ? `<div class="decoded-item" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/><line x1="12" y1="9" x2="12" y2="21"/></svg>DA ${da.toLocaleString()} ft</div>` : ''}
+          </div>`;
+      } else {
+        document.getElementById('briefMetarTime').textContent = '';
+        mEl.innerHTML = `<p style="font-size:15px;color:var(--text-muted)">No current KTOL METAR available.</p>`;
+      }
+
+      const tEl = document.getElementById('briefTaf');
+      if (t && t.rawTAF) {
+        const iss = (t.rawTAF.match(/\b(\d{2})(\d{2})(\d{2})Z\b/) || []);
+        document.getElementById('briefTafTime').textContent = iss.length ? `Issued ${iss[1]} ${iss[2]}${iss[3]}Z` : '';
+        tEl.innerHTML = `<div class="taf">${colorTaf(t.rawTAF)}</div>`;
+      } else {
+        document.getElementById('briefTafTime').textContent = '';
+        tEl.innerHTML = `<p style="font-size:15px;color:var(--text-muted)">No current KTOL TAF available.</p>`;
+      }
+    }
+    function refreshBriefImages() {
+      if (!briefOpen() || document.hidden) return;
+      const bust = u => u + '?t=' + Date.now();
+      document.getElementById('briefProg').src  = bust(BRIEF_PROG_URL);
+      document.getElementById('briefRadar').src = bust(BRIEF_RADAR_URL);
+    }
+    function updateBriefClock() {
+      if (!briefOpen()) return;
+      const n = new Date();
+      document.getElementById('briefClock').textContent =
+        `${_fmt12.format(n)} ${_fmtTZ.formatToParts(n).find(p => p.type === 'timeZoneName')?.value || 'ET'} · ${String(n.getUTCHours()).padStart(2,'0')}${String(n.getUTCMinutes()).padStart(2,'0')}Z`;
+    }
+    function openBriefModal() {
+      document.getElementById('briefModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+      _briefLastOb = null;
+      renderBriefModal(true);
+      refreshBriefImages();
+      updateBriefClock();
+      document.getElementById('briefBtn').style.opacity = '1';
+    }
+    function closeBriefModal() {
+      document.getElementById('briefModal').classList.remove('active');
+      document.body.style.overflow = '';
+      document.getElementById('briefBtn').style.opacity = '0.55';
+    }
+    document.getElementById('briefBtn').addEventListener('click', () => briefOpen() ? closeBriefModal() : openBriefModal());
+    setInterval(updateBriefClock, 1000);
+    setInterval(refreshBriefImages, 300000); // same 5-min cadence as the main charts
+
+    // ========== ALERT MODAL ==========
+    const ALRT_COLORS = { 'alrt-extreme':'#c0392b','alrt-severe':'#d35400','alrt-watch':'#d68910','alrt-heat':'#cb4335','alrt-winter':'#2471a3','alrt-airqual':'#7d5c0d','alrt-fog':'#5d6d7e','alrt-wind':'#1f618d' };
+    function showAlertModal(a) {
+      document.getElementById('alertModalHead').style.background = ALRT_COLORS[a.cls] || '#555';
+      document.getElementById('alertModalTitle').textContent = a.event;
+      document.getElementById('alertModalHeadline').textContent = a.headline || '';
+      let body = a.description || '';
+      if (a.instruction) body += '\n\nWHAT TO DO:\n' + a.instruction;
+      document.getElementById('alertModalBody').textContent = body;
+      const foot = [];
+      if (a.expires) {
+        try { foot.push('Expires: ' + new Date(a.expires).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'})); } catch(e) {}
+      }
+      if (a.senderName) foot.push('Issued by: ' + a.senderName);
+      document.getElementById('alertModalFooter').textContent = foot.join(' \u00b7 ');
+      document.getElementById('alertModal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeAlertModal() {
+      document.getElementById('alertModal').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    // ========== NWS ALERTS ==========
+    async function fetchAlerts() {
+      if (document.hidden) return;
+      await Promise.allSettled(AIRPORTS.map(async apt => {
+        try {
+          const r = await fetchT(`/nws/alerts/active?point=${apt.lat},${apt.lon}&status=actual`);
+          if (!r.ok) return;
+          const json = await r.json();
+          const alerts = [];
+          for (const f of (json.features || [])) {
+            const ev = f.properties?.event;
+            if (ev && ALERT_TYPES[ev] && !alerts.find(a => a.event === ev)) {
+              const p = f.properties;
+              alerts.push({ event: ev, ...ALERT_TYPES[ev],
+                headline: p.headline || '', description: p.description || '',
+                instruction: p.instruction || '', expires: p.expires || '',
+                effective: p.effective || '', senderName: p.senderName || '' });
+            }
+          }
+          weatherData.alerts[apt.icao] = alerts;
+        } catch (e) { /* fail silently — alerts are supplementary */ }
+      }));
+      render();
+    }
+
+    // ========== TFR MAP MODAL ==========
+    let tfrLeafMap = null;
+    let tfrNotamCache = {};
+    let currentTFRNotamId = '';
+
+    function switchTFRTab(tab) {
+      const mapDiv  = document.getElementById('tfrMapDiv');
+      const textDiv = document.getElementById('tfrTextDiv');
+      const tabMap  = document.getElementById('tfrTabMap');
+      const tabText = document.getElementById('tfrTabText');
+      const active  = 'background:#c0392b;color:#fff';
+      const idle    = 'background:var(--surface);color:var(--text-muted)';
+      if (tab === 'map') {
+        mapDiv.style.display  = 'block'; textDiv.style.display = 'none';
+        tabMap.style.cssText  += ';' + active; tabText.style.cssText += ';' + idle;
+        if (tfrLeafMap) setTimeout(() => tfrLeafMap.invalidateSize(), 50);
+      } else {
+        mapDiv.style.display  = 'none'; textDiv.style.display = 'block';
+        tabText.style.cssText += ';' + active; tabMap.style.cssText  += ';' + idle;
+        // Lazy-fetch NOTAM text (proxied through Netlify to tfr.faa.gov/tfrapi/)
+        if (!tfrNotamCache[currentTFRNotamId]) {
+          document.getElementById('tfrNotamText').textContent = 'Loading NOTAM text…';
+          fetch('/tfr/tfrapi/getNotamText?notamId=' + encodeURIComponent(currentTFRNotamId))
+            .then(r => r.json())
+            .then(data => {
+              const txt = Array.isArray(data) && data[0]?.text ? data[0].text : 'NOTAM text not available.';
+              tfrNotamCache[currentTFRNotamId] = txt;
+              document.getElementById('tfrNotamText').textContent = txt;
+            })
+            .catch(() => {
+              tfrNotamCache[currentTFRNotamId] = 'Unable to retrieve NOTAM text. Use the FAA.gov link below.';
+              document.getElementById('tfrNotamText').textContent = tfrNotamCache[currentTFRNotamId];
+            });
+        } else {
+          document.getElementById('tfrNotamText').textContent = tfrNotamCache[currentTFRNotamId];
+        }
+      }
+    }
+
+    function showTFRModal(t) {
+      if (!t || !t.feature) return;
+      const props  = t.feature.properties || {};
+      const geom   = t.feature.geometry;
+
+      // Extract NOTAM ID (e.g. "6/6759" from "6/6759-1-FDC-F")
+      currentTFRNotamId = (props.NOTAM_KEY || '').replace(/%2F/gi, '/').split('-')[0];
+
+      // Header
+      const typeMap = {
+        'SECURITY':'Security TFR','STATUARY':'Presidential / VIP TFR','VIP':'VIP Movement TFR',
+        'SPECIAL':'Special Event TFR','HAZARD':'Hazard / Emergency TFR',
+        'WEATHER':'Weather TFR','AIR SHOW':'Air Show TFR','SPACE OPS':'Space Operations TFR'
+      };
+      const typeLbl = typeMap[props.LEGAL] || props.LEGAL || 'TFR';
+      document.getElementById('tfrModalTitle').textContent = typeLbl + ' — ' + t.title;
+
+      // Reset to map tab
+      document.getElementById('tfrMapDiv').style.display  = 'block';
+      document.getElementById('tfrTextDiv').style.display = 'none';
+      document.getElementById('tfrTabMap').style.background  = '#c0392b';
+      document.getElementById('tfrTabMap').style.color  = '#fff';
+      document.getElementById('tfrTabText').style.background = 'var(--surface)';
+      document.getElementById('tfrTabText').style.color = 'var(--text-muted)';
+
+      // Show modal
+      const modal = document.getElementById('tfrModal');
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+
+      // Build / reset map (skip gracefully if Leaflet was blocked by a network filter)
+      const mapDiv = document.getElementById('tfrMapDiv');
+      if (tfrLeafMap) { tfrLeafMap.remove(); tfrLeafMap = null; }
+      if (typeof L === 'undefined') {
+        mapDiv.innerHTML = '<p style="padding:16px;font-size:13px;color:var(--text-muted)">Map unavailable (Leaflet library could not load). Use the FAA link below for TFR details.</p>';
+      } else {
+      tfrLeafMap = L.map(mapDiv, { zoomControl: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+        maxZoom: 14
+      }).addTo(tfrLeafMap);
+
+      // Draw TFR polygon — FAA WFS coordinates are exact (lon, lat GeoJSON order)
+      let tfrLayer = null;
+      if (geom) {
+        tfrLayer = L.geoJSON(geom, {
+          style: { color: '#c0392b', fillColor: '#e74c3c', fillOpacity: 0.2, weight: 2.5 }
+        }).addTo(tfrLeafMap);
+      }
+
+      // 1G0 reference marker — prominent blue circle with permanent label
+      const bgIcon = L.divIcon({
+        className: '',
+        html: '<div style="background:#1a7abf;border:2px solid #fff;border-radius:50%;width:12px;height:12px;box-shadow:0 0 4px rgba(0,0,0,0.5)"></div>',
+        iconSize: [12, 12], iconAnchor: [6, 6]
+      });
+      L.marker([BG_LAT, BG_LON], { icon: bgIcon })
+        .addTo(tfrLeafMap)
+        .bindTooltip('1G0 — Bowling Green', { permanent: true, direction: 'right', offset: [8, 0],
+          className: 'leaflet-tooltip' });
+
+      // Auto-fit bounds to show TFR + 1G0 with padding
+      try {
+        const base = tfrLayer ? tfrLayer.getBounds() : L.latLngBounds([[BG_LAT, BG_LON]]);
+        tfrLeafMap.fitBounds(base.extend([BG_LAT, BG_LON]), { padding: [30, 30] });
+      } catch(e) { tfrLeafMap.setView([BG_LAT, BG_LON], 9); }
+
+      setTimeout(() => { if (tfrLeafMap) tfrLeafMap.invalidateSize(); }, 120);
+      } // end Leaflet-available branch
+
+      // Details row
+      const rows = [];
+      if (props.LEGAL)       rows.push(['Type', typeLbl]);
+      if (currentTFRNotamId) rows.push(['NOTAM', `<a href="javascript:void(0)" onclick="switchTFRTab('text')" style="color:var(--primary);text-decoration:underline;cursor:pointer">${currentTFRNotamId} — tap to view full text</a>`]);
+      if (props.STATE)       rows.push(['State', props.STATE]);
+      if (props.CNS_LOCATION_ID) rows.push(['ARTCC', props.CNS_LOCATION_ID]);
+
+      document.getElementById('tfrModalBody').innerHTML = rows
+        .map(([k,v]) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="min-width:70px;font-weight:600;color:var(--text-muted);font-size:12px">${k}</span><span style="font-size:13px">${v}</span></div>`)
+        .join('');
+
+      document.getElementById('tfrModalFooter').innerHTML =
+        `<a href="${t.detailUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">View full TFR on FAA.gov →</a>`;
+    }
+
+    function closeTFRModal() {
+      document.getElementById('tfrModal').style.display = 'none';
+      document.body.style.overflow = '';
+      if (tfrLeafMap) { tfrLeafMap.remove(); tfrLeafMap = null; }
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTFRModal(); closeAlertModal(); closeBriefModal(); } });
+
+    // ========== PULL TO REFRESH ==========
+    (function() {
+      const THRESHOLD = 75; // px of pull needed to trigger reload
+      let startY = 0, pulling = false;
+
+      const bar = document.createElement('div');
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;height:0;overflow:hidden;' +
+        'background:var(--surface);border-bottom:1px solid var(--border);display:flex;' +
+        'align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:600;color:var(--primary)';
+      bar.innerHTML =
+        '<svg id="ptrArrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ' +
+        'style="width:16px;height:16px;transition:transform 0.15s"><path d="M12 5v14M5 12l7 7 7-7"/></svg>' +
+        '<span id="ptrText">Pull to refresh</span>';
+      document.body.appendChild(bar);
+
+      // Ignore gestures that start inside a modal, the Leaflet map, an iframe, or any
+      // scrollable child that isn't already at its top — otherwise dragging alert text reloads the page.
+      function ptrBlocked(target) {
+        if (!target || !target.closest) return false;
+        if (target.closest('#alertModal, #tfrModal, #briefModal, .leaflet-container, iframe, .lightbox')) return true;
+        for (let el = target; el && el !== document.body; el = el.parentElement) {
+          const oy = getComputedStyle(el).overflowY;
+          if ((oy === 'auto' || oy === 'scroll') && el.scrollTop > 0) return true;
+        }
+        return false;
+      }
+      document.addEventListener('touchstart', e => {
+        if (window.scrollY === 0 && !ptrBlocked(e.target)) { startY = e.touches[0].clientY; pulling = true; }
+      }, { passive: true });
+
+      document.addEventListener('touchmove', e => {
+        if (!pulling || window.scrollY > 0) return;
+        bar.style.transition = ''; // clear any reset-transition before dragging
+        const dy = Math.max(0, e.touches[0].clientY - startY);
+        bar.style.height = Math.min(dy * 0.5, 52) + 'px';
+        document.getElementById('ptrText').textContent = dy >= THRESHOLD ? 'Release to refresh' : 'Pull to refresh';
+        document.getElementById('ptrArrow').style.transform = `rotate(${Math.min(dy / THRESHOLD * 180, 180)}deg)`;
+      }, { passive: true });
+
+      function resetPTR() {
+        if (!pulling) return;
+        pulling = false;
+        startY = 0;
+        document.getElementById('ptrArrow').style.transform = '';
+        bar.style.transition = 'height 0.2s ease';
+        bar.style.height = '0';
+        setTimeout(() => { bar.style.transition = ''; }, 250);
+      }
+
+      document.addEventListener('touchend', e => {
+        if (!pulling) return;
+        pulling = false;
+        const dy = e.changedTouches[0].clientY - startY;
+        startY = 0;
+        if (dy >= THRESHOLD) {
+          bar.style.height = '52px';
+          document.getElementById('ptrText').textContent = 'Refreshing…';
+          const arr = document.getElementById('ptrArrow');
+          arr.style.transform = '';
+          arr.classList.add('ptr-spinning');
+          setTimeout(() => location.reload(), 400);
+        } else {
+          resetPTR();
+        }
+      }, { passive: true });
+
+      // touchcancel fires when OS interrupts the gesture (phone call, notification,
+      // home-button swipe, etc.). Without this, pulling stays true permanently and
+      // the PTR bar locks up until the page is force-quit.
+      document.addEventListener('touchcancel', resetPTR, { passive: true });
+    })();
+
+    // ========== HEADER PRECIPITATION + LIGHTNING ANIMATION ==========
+    (function () {
+      const hdr = document.querySelector('.header');
+      const cvs = document.createElement('canvas');
+      cvs.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;-webkit-transform:translateZ(0);transform:translateZ(0)';
+      hdr.insertBefore(cvs, hdr.firstChild);
+      const ctx = cvs.getContext('2d');
+      let animId = null, ptcls = [], fx = null;
+      let ltgCfg = null, ltgStrikes = [], ltgTimer = null;
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        cvs.width = Math.round(hdr.offsetWidth * dpr); cvs.height = Math.round(hdr.offsetHeight * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
+        cvs._w = hdr.offsetWidth; cvs._h = hdr.offsetHeight;
+      }
+      resize();
+      new ResizeObserver(resize).observe(hdr);
+
+      function mkRain(n) {
+        return Array.from({length: n}, () => ({
+          x: Math.random()*cvs._w, y: Math.random()*cvs._h,
+          spd: 7+Math.random()*5, len: 9+Math.random()*8, op: 0.2+Math.random()*0.28,
+        }));
+      }
+      function mkSnow(n) {
+        return Array.from({length: n}, () => ({
+          x: Math.random()*cvs._w, y: Math.random()*cvs._h,
+          spd: 0.5+Math.random()*0.9, r: 1.4+Math.random()*2.4,
+          sw: Math.random()*Math.PI*2, ss: 0.007+Math.random()*0.014, op: 0.45+Math.random()*0.42,
+        }));
+      }
+
+      // Lightning bolt path (normalised 0-1; scaled to w×h)
+      function drawBolt(x, size, alpha) {
+        const h  = Math.max(22, cvs._h * 0.78 * size); // floor keeps distant bolts visible
+        const w  = h * 0.54;
+        const bx = x - w * 0.5;
+        const by = 2;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.shadowColor = size > 0.55 ? 'rgba(255,245,80,.9)' : 'rgba(255,255,180,.7)';
+        ctx.shadowBlur  = size > 0.55 ? 14 : 6;
+        ctx.fillStyle   = size > 0.55 ? '#ffe040' : '#fff5b0';
+        ctx.beginPath();
+        ctx.moveTo(bx + w*0.625, by);
+        ctx.lineTo(bx,           by + h*0.50);
+        ctx.lineTo(bx + w*0.44,  by + h*0.50);
+        ctx.lineTo(bx + w*0.25,  by + h);
+        ctx.lineTo(bx + w,       by + h*0.42);
+        ctx.lineTo(bx + w*0.56,  by + h*0.42);
+        ctx.lineTo(bx + w*0.875, by);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function scheduleLtg() {
+        if (!ltgCfg) return;
+        const delay = ltgCfg.interval * (0.5 + Math.random() * 1.0);
+        ltgTimer = setTimeout(() => {
+          if (!ltgCfg) return;
+          if (document.hidden) { scheduleLtg(); return; } // rAF is paused — don't queue bolts nobody sees
+          ltgStrikes = ltgStrikes.filter(s => Date.now() - s.born < s.dur);
+          ltgStrikes.push({
+            x:    30 + Math.random() * (cvs._w - 60),
+            born: Date.now(),
+            dur:  400 + Math.random() * 200, // extended: 400-600ms visible
+            size: ltgCfg.size * (0.7 + Math.random() * 0.6),
+          });
+          if (!animId) tick();
+          scheduleLtg();
+        }, delay);
+      }
+
+      function tick() {
+        ctx.clearRect(0, 0, cvs._w, cvs._h);
+
+        // Precipitation
+        if (fx === 'rain') {
+          ctx.lineWidth = 1;
+          ptcls.forEach(p => {
+            ctx.globalAlpha = p.op;
+            ctx.strokeStyle = 'rgba(185,220,255,1)';
+            ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-2,p.y+p.len); ctx.stroke();
+            p.y+=p.spd; p.x-=1;
+            if(p.y>cvs._h){p.y=-p.len;p.x=Math.random()*cvs._w;}
+          });
+        } else if (fx === 'snow') {
+          ctx.fillStyle='#fff';
+          ptcls.forEach(p => {
+            p.sw+=p.ss; ctx.globalAlpha=p.op;
+            ctx.beginPath(); ctx.arc(p.x+Math.sin(p.sw)*3,p.y,p.r,0,6.283); ctx.fill();
+            p.y+=p.spd;
+            if(p.y>cvs._h+p.r){p.y=-p.r;p.x=Math.random()*cvs._w;}
+          });
+        }
+
+        // Lightning bolts on top
+        const now = Date.now();
+        ltgStrikes = ltgStrikes.filter(s => now - s.born < s.dur);
+        ltgStrikes.forEach(s => {
+          const age   = (now - s.born) / s.dur;
+          const alpha = age < 0.18 ? age / 0.18 : 1 - (age - 0.18) / 0.82;
+          drawBolt(s.x, s.size, Math.min(1, alpha * 1.1));
+        });
+        ctx.globalAlpha = 1;
+
+        // Only keep the rAF loop alive while there is something on screen; scheduleLtg()
+        // restarts it when the next bolt spawns.
+        const active = fx !== null || ltgStrikes.length > 0;
+        animId = active ? requestAnimationFrame(tick) : null;
+      }
+
+      window.startPrecip = function (type, n) {
+        if (fx === type && ptcls.length === n) return;
+        if (animId) { cancelAnimationFrame(animId); animId = null; }
+        fx = type;
+        ptcls = type === 'rain' ? mkRain(n) : mkSnow(n);
+        resize();
+        tick();
+      };
+      window.stopPrecip = function () {
+        fx = null; ptcls = [];
+        if (!ltgCfg && !ltgStrikes.length) {
+          if (animId) { cancelAnimationFrame(animId); animId = null; }
+          ctx.clearRect(0, 0, cvs._w, cvs._h);
+        }
+      };
+      window.startLightning = function (cfg) {
+        if (ltgTimer) { clearTimeout(ltgTimer); ltgTimer = null; }
+        ltgCfg = cfg;
+        ltgStrikes = [];
+        scheduleLtg();
+        if (!animId) tick();
+      };
+      window.stopLightning = function () {
+        if (ltgTimer) { clearTimeout(ltgTimer); ltgTimer = null; }
+        ltgCfg = null;
+        ltgStrikes = [];
+      };
+    })();
+
+    // ========== HEADER WEATHER / SEASON THEME ==========
+    // Rollback: remove this function, its call in render(), and the CSS transition on .header.
+    let _lastThemeKey = null;
+    function applyHeaderTheme(m) {
+      const header = document.querySelector('.header');
+      if (!header) return;
+      // Memoise on the inputs that matter: raw obs text, date bucket, and hour (day/night)
+      const _now = new Date();
+      const _key = `${m ? m.rawOb : ''}|${_now.getMonth()}|${_now.toLocaleString('en-US',{timeZone:'America/New_York',hour:'numeric',hourCycle:'h23'})}|${darkMode}`;
+      if (_key === _lastThemeKey) return;
+      _lastThemeKey = _key;
+
+      // Season from current month (meteorological)
+      const month = new Date().getMonth();
+      const season = (month <= 1 || month === 11) ? 'winter'
+                   : month <= 4 ? 'spring'
+                   : month <= 7 ? 'summer' : 'fall';
+
+      // Day / night based on Eastern Time
+      const etHour = parseInt(new Date().toLocaleString('en-US',
+        { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }));
+      const isNight = etHour < 6 || etHour >= 20;
+
+      // Seasonal VFR base gradients
+      const BASE = {
+        summer: isNight
+          ? 'linear-gradient(135deg,#04080e 0%,#060e1e 60%,#05091a 100%)'
+          : 'linear-gradient(135deg,#0a1628 0%,#0f3d70 55%,#1a5490 100%)',
+        spring: isNight
+          ? 'linear-gradient(135deg,#030a04 0%,#050f08 60%,#04080a 100%)'
+          : 'linear-gradient(135deg,#071a08 0%,#0c3022 55%,#0d3a22 100%)',
+        fall:   isNight
+          ? 'linear-gradient(135deg,#0a0400 0%,#180900 60%,#140700 100%)'
+          : 'linear-gradient(135deg,#1c0900 0%,#3e1500 55%,#4e2004 100%)',
+        winter: isNight
+          ? 'linear-gradient(135deg,#020509 0%,#060e1c 60%,#040b15 100%)'
+          : 'linear-gradient(135deg,#060e1c 0%,#0e2244 55%,#1a3455 100%)',
+      };
+
+      // Weather-condition overrides (highest priority first)
+      const WX = {
+        ts:    'linear-gradient(135deg,#050510 0%,#160930 60%,#090618 100%)',
+        lifr:  'linear-gradient(135deg,#050508 0%,#0d0d16 60%,#07070e 100%)',
+        ifr:   'linear-gradient(135deg,#0a0a14 0%,#181828 60%,#10101e 100%)',
+        snow:  'linear-gradient(135deg,#0a1828 0%,#153040 60%,#1e3e58 100%)',
+        fog:   'linear-gradient(135deg,#14141e 0%,#20202c 60%,#181828 100%)',
+        mvfr:  'linear-gradient(135deg,#0a1022 0%,#141e38 60%,#0e1830 100%)',
+        aqa:   'linear-gradient(135deg,#1a1108 0%,#2c1e0a 60%,#201508 100%)',
+      };
+
+      let grad = BASE[season];
+
+      if (m) {
+        const rawWx = (m.rawOb || '').replace(/TSNO|FZRANO/g, '');
+        const cat   = m.fltCat || '';
+        const aqa   = (weatherData.alerts?.['KTOL'] || []).some(a => a.event === 'Air Quality Alert');
+
+        if      (rawWx.includes('TS') || rawWx.includes('CB')) grad = WX.ts;
+        else if (cat === 'LIFR')                                grad = WX.lifr;
+        else if (cat === 'IFR')                                 grad = WX.ifr;
+        else if (rawWx.includes('SN'))                          grad = WX.snow;
+        else if (rawWx.match(/\sFG|\+FG|FZFG/))              grad = WX.fog;
+        else if (aqa)                                           grad = WX.aqa;
+        else if (cat === 'MVFR')                                grad = WX.mvfr;
+      }
+
+      header.style.background = grad;
+      // All theme gradients are dark — force white text and icons for readability
+      header.style.color = 'rgba(255,255,255,0.95)';
+      const verEl = header.querySelector('small');
+      if (verEl) verEl.style.color = 'rgba(255,255,255,0.55)';
+      header.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.style.color = 'rgba(255,255,255,0.85)';
+        btn.style.background = 'rgba(255,255,255,0.1)';
+      });
+
+      // Precipitation particle animation
+      // Same RMK-split approach — only check METAR body for precipitation
+      const rxBody = (m?.rawOb || '').split(' RMK ')[0].toUpperCase();
+      const hasSN = rxBody.includes('SN') || rxBody.includes('SG');
+      const hasRA = rxBody.includes('RA') || rxBody.includes('DZ');
+      if (m && hasSN) {
+        const cnt = rxBody.includes('+SN') ? 80 : rxBody.includes('-SN') ? 28 : 52;
+        window.startPrecip('snow', cnt);
+      } else if (m && hasRA) {
+        const cnt = rxBody.includes('+RA') ? 110 : (rxBody.includes('-RA') || rxBody.includes('DZ')) ? 38 : 75;
+        window.startPrecip('rain', cnt);
+      } else {
+        window.stopPrecip();
+      }
+
+      // Lightning animation — parsed from METAR REMARKS (after RMK)
+      // Proximity and intensity vary bolt size and flash rate
+      const rmk = m ? (m.rawOb || '').toUpperCase().split(' RMK ')[1] || '' : '';
+      const ltgConfigs = {
+        ts:   { size: 0.92, interval: 300  }, // TS/CB at station — huge, very frequent
+        frq:  { size: 0.78, interval: 550  }, // LTG FRQ — large, frequent
+        cont: { size: 0.78, interval: 420  }, // LTG CONT — large, near-continuous
+        vc:   { size: 0.62, interval: 1200 }, // LTG VC — medium, moderate
+        ocnl: { size: 0.50, interval: 2200 }, // LTG OCNL — medium-small, occasional
+        dsnt: { size: 0.38, interval: 3000 }, // LTG DSNT — small but visible, infrequent
+      };
+      let ltgType = null;
+      if (rxBody.includes('TS') || rxBody.includes('CB'))              ltgType = 'ts';
+      else if (rmk.includes('LTG FRQ')  || rmk.includes('FRQ LTG'))    ltgType = 'frq';
+      else if (rmk.includes('LTG CONT') || rmk.includes('CONT LTG'))    ltgType = 'cont';
+      else if (rmk.includes('LTG VC')   || rmk.includes('VC LTG'))      ltgType = 'vc';
+      else if (rmk.includes('LTG OCNL') || rmk.includes('OCNL LTG'))    ltgType = 'ocnl';
+      else if (rmk.includes('LTG'))                                      ltgType = 'dsnt';
+
+      if (ltgType) window.startLightning(ltgConfigs[ltgType]);
+      else         window.stopLightning();
+    }
+
+    // ========== CLOCKS ==========
+    const _fmtTZ = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', timeZoneName:'short' });
+    const _fmt12 = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'numeric', minute:'2-digit', hour12:true });
+    const _fmt24 = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+    function updateClocks() {
+      if (document.hidden) return;
+      const now = new Date();
+      const tz = _fmtTZ.formatToParts(now).find(p => p.type === 'timeZoneName')?.value || 'ET';
+      // Blinking colon: visibility:hidden keeps width stable so layout never shifts
+      const col = `<span style="visibility:${now.getSeconds()%2===0?'visible':'hidden'}">:</span>`;
+      const p12 = _fmt12.format(now).split(':');
+      const p24 = _fmt24.format(now).split(':');
+      const hZ = String(now.getUTCHours()).padStart(2,'0');
+      const mZ = String(now.getUTCMinutes()).padStart(2,'0');
+      const el12 = document.getElementById('clock12h');
+      const el24 = document.getElementById('clock24h');
+      const elZ  = document.getElementById('clockZ');
+      if (el12) el12.innerHTML = p12[0] + col + p12[1] + ' ' + tz;
+      if (el24) el24.innerHTML = p24[0] + col + p24[1] + ' ' + tz;
+      if (elZ)  elZ.innerHTML  = hZ + col + mZ + 'Z';
+    }
+    updateClocks();
+    setInterval(updateClocks, 1000);
+
+    // ========== INIT ==========
+    fetchData();
+    fetchBGForecast();
+    checkTFRs();
+    fetchWindsAloft();
+    setTimeout(fetchAlerts, 5000); // delay alerts so METAR/TAF loads first
+    let _dataTimer = setInterval(fetchData, 120000);
+    setInterval(refreshCharts, 300000);    // radar / prog / SPC images every 5 min
+    setInterval(fetchBGForecast, 3600000); // daily hi/lo — hourly is plenty
+    setInterval(checkTFRs, 300000);
+    setInterval(fetchWindsAloft, 3600000); // Winds aloft updates hourly
+    setInterval(fetchAlerts, 900000);      // NWS alerts every 15 min
+    // Defer heavy iframes until after initial weather data loads
+    setTimeout(loadDeferredIframes, 100);
+
+    // Hidden tab: nothing is visible, so skip the network/CPU work and catch up when the
+    // user comes back. Intervals keep ticking but each callback bails via _hidden.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      const stale = !weatherData.lastFetch || Date.now() - weatherData.lastFetch > 60000;
+      if (stale) { fetchData(); refreshCharts(); }
+      updateClocks();
+    });
+  </script>
+
+  <!-- Briefing view (full screen) -->
+  <div class="brief" id="briefModal" role="dialog" aria-modal="true" aria-label="KTOL briefing view">
+    <div style="background:var(--caution-border);color:#1a2332;text-align:center;padding:8px 14px;font-size:14px;font-weight:600;line-height:1.4;flex-shrink:0">⚠️ This information is for situational awareness only. It must not be used for official flight planning. Always obtain a proper weather briefing through approved sources.</div>
+    <div class="brief-head">
+      <h2>KTOL <span class="sub" id="briefSub">Toledo Express — briefing view</span></h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="briefClock" style="font-family:var(--mono);font-size:14px;color:var(--text-muted)"></span>
+        <button class="icon-btn" onclick="closeBriefModal()" aria-label="Close briefing view" style="font-size:22px;line-height:1;padding:4px 10px">&times;</button>
+      </div>
+    </div>
+    <div class="brief-grid">
+      <div class="brief-pane p-metar"><div class="ph"><span>METAR</span><span id="briefMetarTime" style="font-family:var(--mono);text-transform:none;letter-spacing:0"></span></div><div class="pb" id="briefMetar"></div></div>
+      <div class="brief-pane p-prog"><div class="ph"><span>12-Hour Surface Prog</span><span style="text-transform:none;letter-spacing:0;font-weight:400">WPC</span></div><div class="pb img"><img id="briefProg" alt="12-Hour Surface Prog"></div></div>
+      <div class="brief-pane p-taf"><div class="ph"><span>TAF</span><span id="briefTafTime" style="font-family:var(--mono);text-transform:none;letter-spacing:0"></span></div><div class="pb" id="briefTaf"></div></div>
+      <div class="brief-pane p-radar"><div class="ph"><span>Radar — Central Great Lakes</span><span style="text-transform:none;letter-spacing:0;font-weight:400">NWS NEXRAD loop</span></div><div class="pb img"><img id="briefRadar" alt="Central Great Lakes radar loop"></div></div>
+    </div>
+  </div>
+
+  <!-- NWS Alert Detail Modal -->
+  <div id="alertModal" onclick="if(event.target===this)closeAlertModal()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);overflow-y:auto;padding:20px">
+    <div style="max-width:640px;margin:20px auto;background:var(--surface);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden">
+      <div id="alertModalHead" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+        <strong id="alertModalTitle" style="font-size:15px;color:#fff"></strong>
+        <button onclick="closeAlertModal()" style="background:rgba(0,0,0,0.2);border:none;font-size:20px;line-height:1;cursor:pointer;color:#fff;padding:2px 8px;border-radius:4px" aria-label="Close">&times;</button>
+      </div>
+      <div style="padding:14px 16px">
+        <div id="alertModalHeadline" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"></div>
+        <div id="alertModalBody" style="font-size:13px;line-height:1.65;white-space:pre-wrap;max-height:55vh;overflow-y:auto;word-break:break-word"></div>
+        <div id="alertModalFooter" style="margin-top:12px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TFR Map Modal -->
+  <div id="tfrModal" onclick="if(event.target===this)closeTFRModal()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);overflow-y:auto;padding:20px">
+    <div style="max-width:660px;margin:20px auto;background:var(--surface);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,0.45);overflow:hidden">
+      <div style="padding:13px 16px;background:#c0392b;display:flex;justify-content:space-between;align-items:center">
+        <strong id="tfrModalTitle" style="font-size:14px;color:#fff;flex:1;margin-right:8px"></strong>
+        <button onclick="closeTFRModal()" style="background:rgba(0,0,0,0.25);border:none;font-size:20px;line-height:1;cursor:pointer;color:#fff;padding:2px 9px;border-radius:4px" aria-label="Close">&times;</button>
+      </div>
+      <!-- Tab bar -->
+      <div style="display:flex;border-bottom:1px solid var(--border)">
+        <button id="tfrTabMap"  onclick="switchTFRTab('map')"  style="flex:1;padding:8px 12px;border:none;background:#c0392b;color:#fff;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.03em">MAP</button>
+        <button id="tfrTabText" onclick="switchTFRTab('text')" style="flex:1;padding:8px 12px;border:none;background:var(--surface);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.03em">NOTAM TEXT</button>
+      </div>
+      <!-- Map view -->
+      <div id="tfrMapDiv" style="height:310px;width:100%;background:#e8e8e8"></div>
+      <!-- Text view (hidden initially) -->
+      <div id="tfrTextDiv" style="display:none;height:310px;overflow-y:auto;padding:14px 16px">
+        <pre id="tfrNotamText" style="margin:0;font-family:monospace;font-size:12px;white-space:pre-wrap;line-height:1.55;color:var(--text)">Loading NOTAM text…</pre>
+      </div>
+      <div style="padding:13px 16px">
+        <div id="tfrModalBody"></div>
+        <div id="tfrModalFooter" style="margin-top:10px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
