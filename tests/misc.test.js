@@ -62,7 +62,7 @@ test('alert labels fit a badge (no abbreviation of "Warning" in heat labels)', (
 // ---- proxy map / IDs -----------------------------------------------------------------
 test('every AWC proxy path used in JS has a _redirects rule', () => {
   const fs = require('fs'); const path = require('path');
-  const redirects = fs.readFileSync(path.join(__dirname, '..', '_redirects'), 'utf8');
+  const redirects = fs.readFileSync(path.join(__dirname, '..', 'site', '_redirects'), 'utf8');
   for (const p of Object.values(x.AWC_PROXY_MAP)) {
     assert.ok(redirects.includes(`${p}*`), `no _redirects rule for ${p}*`);
   }

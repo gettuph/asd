@@ -1,12 +1,12 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.31** (`CURRENT_VERSION` in `index.html` and `version.txt`).
+Current version: **v1.31** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
 
-- One static file, `index.html` (HTML, CSS, and JavaScript inline). No framework and no build step.
-- Hosted on Netlify (site `aert2800wx`). The publish directory is the repo root.
+- One static file, `site/index.html` (HTML, CSS, and JavaScript inline). No framework and no build step. Everything served lives in `site/`; docs, tests, and the deploy script sit at the repo root.
+- Hosted on Netlify (site `aert2800wx`). The publish directory is `site/`.
 - `_redirects` provides same-origin reverse proxies:
 
 | Path | Upstream |

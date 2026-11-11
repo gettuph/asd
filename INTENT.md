@@ -41,6 +41,7 @@ These came out of the decisions made while building the app. When a new request 
 | Decision | Reason |
 |---|---|
 | Single `index.html`, no build step | Simple to deploy and easy to review |
+| Served files in `site/`, docs and tooling at the repo root | Keeps the publish directory clean; the deploy only ever uploads `site/` |
 | Netlify `_redirects` reverse proxy for AWC, NWS, and FAA TFR data | Third-party CORS proxies caused 30-second loads and outages |
 | Weather themes and animations read only the KTOL METAR body, before `RMK` | Remarks like `TSNO` and `LTG DSNT` caused false snow and thunderstorm triggers |
 | TFR alerts cover active or scheduled TFRs within 75 nm of 1G0 | Owner's choice. Each TFR has its own modal, with no combined map |

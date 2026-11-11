@@ -6,11 +6,12 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
 
 ## Project at a glance
 
-- One static page: `index.html` with inline CSS and JavaScript. No framework, no bundler, no build step.
-- Supporting files:
+- One static page: `site/index.html` with inline CSS and JavaScript. No framework, no bundler, no build step.
+- Everything Netlify serves lives in `site/` (the publish directory):
   - `_redirects`: Netlify reverse proxies.
   - `version.txt`: current version.
   - `manifest.json` and the icons.
+- Repo root holds the docs (`AGENTS.md`, `INTENT.md`, `SPEC.md`, `BACKLOG.md`, `README.md`), `tests/`, `package.json`, and `scripts/deploy.py`. Don't put served files at the root or docs inside `site/`.
 - Hosted at https://aert2800wx.netlify.app (Netlify site `aert2800wx`).
 
 ## Working with the owner
@@ -54,11 +55,11 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
 
 ## Change workflow (required for every change)
 
-1. Make the edit in `index.html`, along with `_redirects` and `version.txt` if needed.
+1. Make the edit in `site/index.html`, along with `site/_redirects` and `site/version.txt` if needed.
 2. Run `npm test` (static checks + unit tests, see `tests/README.md`). Fix failures before deploying. Add a test when you fix a parsing or math bug. Tests run only on command; do not add CI or schedules unless the owner asks.
 3. Test locally or on a Netlify draft deploy. There should be no console errors, METARs and TAFs should load, and every tab should render.
 4. Check the layout on a phone, iPad portrait and landscape, desktop, and a 1920×1080 projector.
-5. **Deploy to Netlify** production (API deploy of the repo root), then confirm the live `version.txt` shows the new version.
+5. **Deploy to Netlify** production with `scripts/deploy.py` (uploads `site/`; see `README.md`), then confirm the live `version.txt` shows the new version.
 6. **Update the relevant docs** to match what shipped:
    - `SPEC.md`: what the app does now, including the version number at the top.
    - `BACKLOG.md`: remove items that shipped and add new ideas or open questions.

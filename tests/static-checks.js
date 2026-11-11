@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROOT = path.join(__dirname, '..');
+const ROOT = path.join(__dirname, '..', 'site');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const html = read('index.html');
 const redirects = read('_redirects');
@@ -98,9 +98,19 @@ for (const icon of manifest.icons || []) check(`manifest icon exists: ${icon.src
 for (const f of ['favicon.svg', 'icon-32.png', 'icon-180.png', 'icon-192.png', 'icon-512.png']) check(`file present: ${f}`, fs.existsSync(path.join(ROOT, f)));
 
 // ---- 12. no secrets (AGENTS.md rule 11) --------------------------------------------------
-const tracked = fs.readdirSync(ROOT).filter(f => /\.(html|js|md|json|txt)$/.test(f) || f === '_redirects');
+const REPO = path.join(__dirname, '..');
+const textFile = f => /\.(html|js|py|md|json|txt)$/.test(f) || f === '_redirects';
+const tracked = [];
+for (const dir of ['', 'site', 'scripts', 'tests']) {
+  const abs = path.join(REPO, dir);
+  if (!fs.existsSync(abs)) continue;
+  for (const f of fs.readdirSync(abs)) {
+    const rel = dir ? `${dir}/${f}` : f;
+    if (textFile(f) && fs.statSync(path.join(REPO, rel)).isFile()) tracked.push(rel);
+  }
+}
 for (const f of tracked) {
-  const t = read(f);
+  const t = fs.readFileSync(path.join(REPO, f), 'utf8');
   check(`no Netlify token in ${f}`, !/nfp_[A-Za-z0-9]{20,}/.test(t) && !/Bearer [A-Za-z0-9_-]{30,}/.test(t));
 }
 

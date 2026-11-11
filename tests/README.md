@@ -12,7 +12,7 @@ Requires Node 20+. No dependencies to install.
 
 ## What is covered
 
-**`static-checks.js`** reads `index.html`, `_redirects`, `version.txt`, and `manifest.json` and verifies:
+**`static-checks.js`** reads `site/index.html`, `site/_redirects`, `site/version.txt`, and `site/manifest.json` and verifies:
 - the inline script parses;
 - `CURRENT_VERSION`, `<title>`, the header label, and `version.txt` all agree;
 - both safety disclaimers are present word for word, and the briefing view's is first;
@@ -23,7 +23,7 @@ Requires Node 20+. No dependencies to install.
 - weather detection splits at ` RMK `; no `rawBody` typo;
 - every `getElementById` target exists in the HTML (or is in the known dynamic list);
 - `_redirects` keeps the `?` before `:splat` on AWC rules and covers every proxy path the JS uses;
-- manifest icons exist; no tokens committed; no `console.log`.
+- manifest icons exist; no tokens committed anywhere in the repo (root, `site/`, `scripts/`, `tests/`); no `console.log`.
 
 **Unit tests** load the real inline script into a Node VM with a fake DOM (`harness.js`) and exercise the pure functions:
 - `taf.test.js` — `tafLineCat` flight categories (including the fraction-after-time-group and `M1/4SM` bugs), `colorTaf`.
