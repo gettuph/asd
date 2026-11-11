@@ -75,7 +75,7 @@ sandbox.self = sandbox;
 // already globals in a VM script context; these are not).
 const exportLine = `
 ;globalThis.__x = {
-  RUNWAYS, ALERT_TYPES, AIRPORTS, IDS, AWC_PROXY_MAP, SKY_LABELS, BG_LAT, BG_LON,
+  RUNWAYS, ALERT_TYPES, AIRPORTS, IDS, AWC_PROXY_MAP, SKY_LABELS, BG_LAT, BG_LON, SK,
   FD_STATIONS, FD_ALTS, _fmt12, _fmt24,
   getWeatherData: () => weatherData,
   setWeatherData: d => { weatherData = d; },

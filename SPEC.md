@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.34** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.35** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -57,9 +57,13 @@ Each card shows, in this order:
    - Density altitude is pressure altitude plus 120 × (OAT − ISA temperature). Pressure altitude comes from the altimeter setting, and field elevation from the AWC `elev` field.
 4. **TAF** (tap to expand): each line is colored by flight category (VFR green, MVFR blue, IFR red, LIFR purple).
    - Visibility parsing must handle fractions and `M1/4SM`, and must not read times as visibility.
-5. **Runway winds** (collapsible): headwind and crosswind for each runway end. It is always shown when runway data exists.
-   - Calm → "Calm — no crosswind component"
-   - Variable → "Variable at X kt — crosswind component indeterminate"
+5. **Runway winds** (collapsible): a north-up SVG sketch (`runwaySketchSvg`) replaces the former table. It is always shown when runway data exists.
+   - Runways are drawn at their true headings from the `RUNWAYS` table, scaled to length (longest spans the circle; none shrinks below 45% so short runways stay visible). Parallel pairs such as DTW 03/04 are drawn once.
+   - A blue arrow points from the direction the wind blows **from** toward the center; the legend reads "Wind 060° at 7 kt" (plus "gusting N kt"). "N ↑" marks north.
+   - Each runway end carries three lines: designator, "Headwind N kt" or "Tailwind N kt" (tailwind in red), and "XW N kt L/R" (amber at ≥10 kt, red at ≥15 kt). Words are spelled out; no checkmarks. Components use the existing `windComponents` math on the sustained wind.
+   - The favored end (`bestRunwayEnd`: greatest headwind, ties to the smaller crosswind) gets a green pill, and its runway is drawn darker.
+   - Labels beside ends within about 22° of vertical stack above/below; all others sit beside the end. ViewBox 440×330; the SVG fills the card up to 460 px wide, so label text runs from about 10.5 px on a phone to 15 px on a wide card.
+   - Calm → sketch with designators only plus "Calm — no crosswind component"; Variable → sketch with designators only plus "Variable at X kt — crosswind component indeterminate". No arrow, no components, no pill in either case.
 6. **Remaining callouts:** fog risk from a small temperature/dewpoint spread, icing range, low altimeter, convective activity, freezing precipitation, snow, and TAF alternate analysis.
    - They are based only on the METAR body before `RMK`.
    - No wind callouts and no VFR/IFR summary callout.

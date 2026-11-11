@@ -4,7 +4,7 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Needs a decision
 
-- Is there a way to add an airport sketch that shows the headwinds, tailwinds, and crosswinds instead of using the table?
+- (none)
 
 ## Fixes and cleanup
 
