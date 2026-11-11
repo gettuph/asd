@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.35</title>
+  <title>Aviation Situation Dashboard v1.36</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -238,12 +238,13 @@
     .rwy-sketch { display:block; width:100%; max-width:460px; height:auto; margin:6px auto 0; font-family:var(--sans); }
     .rwy-sketch text { fill:var(--text); }
     .rwy-sketch .sk-muted { fill:var(--text-muted); }
-    .rwy-sketch .sk-rwy { stroke:var(--text-muted); stroke-width:9; stroke-linecap:butt; opacity:0.5; }
+    .rwy-sketch .sk-rwy { stroke:var(--text-muted); stroke-linecap:butt; opacity:0.5; }
     .rwy-sketch .sk-rwy.best { stroke:var(--text); opacity:0.75; }
     .rwy-sketch .sk-wind { stroke:var(--primary); stroke-width:3.5; stroke-linecap:round; }
     .rwy-sketch .sk-wind-head { fill:var(--primary); }
     .rwy-sketch .sk-pill { fill:var(--vfr); }
     .rwy-sketch .sk-pill-text { fill:#fff; }
+    .rwy-sketch .sk-leader { stroke:var(--text-muted); stroke-width:1; opacity:0.6; }
 
     /* Decoded fields grid */
     .decoded { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 13px; margin-bottom: 10px; }
@@ -429,7 +430,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.35&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.36&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -542,7 +543,7 @@
       { icao: "KTOL", name: "Toledo Express", city: "Toledo, OH", dist: 16, group: "local", lat: 41.5868, lon: -83.8078 },
       { icao: "KTDZ", name: "Toledo Executive", city: "Toledo, OH", dist: 14, group: "local", lat: 41.5647, lon: -83.4823 },
       { icao: "KFDY", name: "Findlay", city: "Findlay, OH", dist: 26, group: "local", lat: 41.0141, lon: -83.6693 },
-      { icao: "KDUH", name: "Toledo Suburban", city: "Lambertville, MI", dist: 24, group: "local", lat: 41.7054, lon: -83.4817 },
+      { icao: "KDUH", name: "Toledo Suburban", city: "Lambertville, MI", dist: 24, group: "local", lat: 41.7359, lon: -83.6558 },
       // 36–90 mi (alphabetical)
       { icao: "KADG", name: "Adrian Lenawee County", city: "Adrian, MI", dist: 69, group: "area", lat: 41.8674, lon: -84.0774 },
       { icao: "KDTW", name: "Detroit Metro Wayne", city: "Detroit, MI", dist: 60, group: "area", lat: 42.2124, lon: -83.3534 },
@@ -603,8 +604,8 @@
       KADG: [{le:"05",he:"23",le_hdg:47,he_hdg:227,len:5001},{le:"11",he:"29",le_hdg:107,he_hdg:287,len:1779}],
       KAZO: [{le:"05",he:"23",le_hdg:45,he_hdg:225,len:3438},{le:"09",he:"27",le_hdg:90,he_hdg:270,len:2800},{le:"17",he:"35",le_hdg:171,he_hdg:351,len:6502}],
       KDUH: [{le:"09",he:"27",le_hdg:87,he_hdg:267,len:4807}],
-      KJXN: [{le:"07",he:"25",le_hdg:51,he_hdg:231,len:5351},{le:"14",he:"32",le_hdg:133,he_hdg:313,len:4000}],
-      KMIE: [{le:"03",he:"21",le_hdg:16,he_hdg:196,len:5198},{le:"14",he:"32",le_hdg:136,he_hdg:316,len:6500}],
+      KJXN: [{le:"07",he:"25",le_hdg:67,he_hdg:247,len:5351},{le:"14",he:"32",le_hdg:133,he_hdg:313,len:4000}],
+      KMIE: [{le:"03",he:"21",le_hdg:22,he_hdg:202,len:5198},{le:"14",he:"32",le_hdg:136,he_hdg:316,len:6500}],
     };
 
     // Calculate wind components for a runway
@@ -631,7 +632,14 @@
       return { rwy: rwy.he, comp: compHe, pair: `${rwy.le}/${rwy.he}`, len: rwy.len };
     }
     // ---- Runway wind sketch (north-up SVG; replaces the component table) ----
-    const SK = { w: 440, h: 330, cx: 220, cy: 170, r: 96 };
+    // Geometry comes from the FAA ADDS "Runways" footprint layer when available (fetchRunwayGeo),
+    // otherwise from the RUNWAYS heading table. Both paths feed runwaySketchSvg.
+    const SK = { w: 440, h: 360, cx: 220, cy: 186, r: 108 };
+    const FAA_RWY_URL = "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Runways/FeatureServer/0/query";
+    const RWY_GEO_KEY = "asd.rwygeo.v1";
+    const RWY_GEO_TTL = 56 * 86400000; // FAA republishes the layer every 56 days
+    let runwayGeo = {};                // icao -> [{le, he, a:{x,y}, b:{x,y}, hdg, len, width}] in metres E/N of the airport point
+
     function runwayEnds(rwys) {
       const ends = [];
       for (const rwy of rwys || []) {
@@ -652,36 +660,198 @@
       return best ? best.name : null;
     }
     function skPt(hdg, r) { const a = hdg * Math.PI / 180; return { x: SK.cx + r * Math.sin(a), y: SK.cy - r * Math.cos(a) }; }
-    // Where an end's label sits: near-vertical ends stack above/below; others sit beside the end.
-    function skLabelLayout(hdg) {
-      const a = hdg * Math.PI / 180, sn = Math.sin(a), cs = Math.cos(a);
-      if (Math.abs(sn) < 0.38) return { anchor: "middle", pos: cs > 0 ? "top" : "bottom" };
-      return { anchor: sn > 0 ? "start" : "end", pos: "side" };
+    // Label boxes start just outside their runway end, then overlapping boxes are pushed apart and
+    // kept inside the drawing and outside the runway area. Returns one {x, y, w, h, leader} per group.
+    function layoutLabels(groups, lineCount) {
+      const lh = 15, pad = 4;
+      const boxes = groups.map(g => {
+        const w = Math.max(g.label.length * 9.5, lineCount > 1 ? 14 * 7.6 : 0) + 8, h = lineCount * lh + 6;
+        const a = g.out * Math.PI / 180, sn = Math.sin(a), cs = Math.cos(a);
+        const half = Math.abs(sn) * w / 2 + Math.abs(cs) * h / 2;           // box half-extent along the outward direction
+        return { g, w, h, x: g.p.x + (8 + half) * sn, y: g.p.y - (8 + half) * cs };
+      });
+      const minX = 4, maxX = SK.w - 4, minY = 26, maxY = SK.h - 16;
+      for (let it = 0; it < 120; it++) {
+        let moved = false;
+        for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+          const A = boxes[i], B = boxes[j];
+          const ox = (A.w + B.w) / 2 + pad - Math.abs(A.x - B.x), oy = (A.h + B.h) / 2 + pad - Math.abs(A.y - B.y);
+          if (ox <= 0 || oy <= 0) continue;
+          moved = true;
+          if (ox < oy) { const d = (A.x <= B.x ? -1 : 1) * ox / 2; A.x += d; B.x -= d; }
+          else         { const d = (A.y <= B.y ? -1 : 1) * oy / 2; A.y += d; B.y -= d; }
+        }
+        for (const b of boxes) {
+          // stay clear of the runway area (circle of radius SK.r around the center)
+          const dx = b.x - SK.cx, dy = b.y - SK.cy, dist = Math.hypot(dx, dy) || 1;
+          const half = Math.abs(dx / dist) * b.w / 2 + Math.abs(dy / dist) * b.h / 2;
+          const need = SK.r * 0.62 + half;
+          if (dist < need) { b.x = SK.cx + dx / dist * need; b.y = SK.cy + dy / dist * need; moved = true; }
+          // stay inside the drawing
+          const nx = Math.min(Math.max(b.x, minX + b.w / 2), maxX - b.w / 2), ny = Math.min(Math.max(b.y, minY + b.h / 2), maxY - b.h / 2);
+          if (nx !== b.x || ny !== b.y) { b.x = nx; b.y = ny; moved = true; }
+        }
+        if (!moved) break;
+      }
+      for (const b of boxes) {
+        // leader from the runway end to the nearest point on the box edge, when the box has drifted away
+        const ex = Math.min(Math.max(b.g.p.x, b.x - b.w / 2), b.x + b.w / 2), ey = Math.min(Math.max(b.g.p.y, b.y - b.h / 2), b.y + b.h / 2);
+        b.leader = Math.hypot(ex - b.g.p.x, ey - b.g.p.y) > 14 ? { x: ex, y: ey } : null;
+      }
+      return boxes;
     }
-    function runwaySketchSvg(rwys, m) {
-      const ends = runwayEnds(rwys);
-      if (!ends.length) return "";
+    const angDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+
+    // ---- FAA footprint geometry ----
+    // Local flat projection in metres, east/north of a reference point.
+    function llToXY(lat, lon, refLat, refLon) {
+      return { x: (lon - refLon) * 111320 * Math.cos(refLat * Math.PI / 180), y: (lat - refLat) * 110574 };
+    }
+    // Principal axis of a footprint ring -> the two threshold points and the pavement width.
+    function ringAxis(ring, refLat, refLon) {
+      const pts = ring.map(([lon, lat]) => llToXY(lat, lon, refLat, refLon));
+      if (pts.length > 1 && pts[0].x === pts[pts.length - 1].x && pts[0].y === pts[pts.length - 1].y) pts.pop();
+      const n = pts.length;
+      if (n < 3) return null;
+      const cx = pts.reduce((s, p) => s + p.x, 0) / n, cy = pts.reduce((s, p) => s + p.y, 0) / n;
+      let sxx = 0, syy = 0, sxy = 0;
+      for (const p of pts) { const dx = p.x - cx, dy = p.y - cy; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; }
+      const th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+      const ux = Math.cos(th), uy = Math.sin(th);
+      let tMin = Infinity, tMax = -Infinity, pMin = Infinity, pMax = -Infinity;
+      for (const p of pts) {
+        const dx = p.x - cx, dy = p.y - cy;
+        const t = dx * ux + dy * uy, q = -dx * uy + dy * ux;
+        tMin = Math.min(tMin, t); tMax = Math.max(tMax, t); pMin = Math.min(pMin, q); pMax = Math.max(pMax, q);
+      }
+      return { a: { x: cx + ux * tMin, y: cy + uy * tMin }, b: { x: cx + ux * tMax, y: cy + uy * tMax }, width: pMax - pMin };
+    }
+    const bearingXY = (p, q) => ((Math.atan2(q.x - p.x, q.y - p.y) * 180 / Math.PI) + 360) % 360;
+    // FAA features for one airport's envelope -> runway list. Keeps the airport (AIRPORT_ID group) whose
+    // pavement is nearest the reference point; drops helipads (H…) and closed/unverified (…X) designators.
+    function parseFaaRunways(features, refLat, refLon) {
+      const groups = new Map();
+      for (const f of features || []) {
+        const pr = f.properties || f.attributes || {};
+        const des = String(pr.DESIGNATOR || "");
+        const ring = f.geometry && f.geometry.type === "Polygon" && f.geometry.coordinates && f.geometry.coordinates[0];
+        if (!ring || !/^\d/.test(des) || /X/.test(des)) continue;
+        const ax = ringAxis(ring, refLat, refLon);
+        if (!ax) continue;
+        const [le, he] = des.split("/");
+        if (!le || !he) continue;
+        // Orient: the end whose outbound bearing matches its designator (x10) is the low end.
+        let a = ax.a, b = ax.b, hdg = bearingXY(a, b);
+        if (angDiff(hdg, parseInt(le, 10) * 10) > 90) { [a, b] = [b, a]; hdg = bearingXY(a, b); }
+        const len = Math.hypot(b.x - a.x, b.y - a.y) / 0.3048;
+        const rw = { le, he, a, b, hdg: Math.round(hdg * 10) / 10, len: Number(pr.LENGTH) || Math.round(len), width: ax.width, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+        const g = pr.AIRPORT_ID || "?";
+        if (!groups.has(g)) groups.set(g, []);
+        groups.get(g).push(rw);
+      }
+      if (!groups.size) return [];
+      let best = null, bestD = Infinity;
+      for (const list of groups.values()) {
+        const d = Math.min(...list.map(r => Math.hypot(r.mid.x, r.mid.y)));
+        if (d < bestD) { bestD = d; best = list; }
+      }
+      return best.sort((p, q) => q.len - p.len);
+    }
+    async function fetchRunwayGeo() {
+      try {
+        const c = JSON.parse(localStorage.getItem(RWY_GEO_KEY) || "null");
+        if (c && c.t && Date.now() - c.t < RWY_GEO_TTL && c.data) { runwayGeo = c.data; renderAirportsOnly(); return; }
+      } catch {}
+      const d = 0.03; // ~1.6 nm half-width envelope around the airport point
+      const results = await Promise.all(AIRPORTS.map(async apt => {
+        const qs = new URLSearchParams({
+          geometry: `${apt.lon - d},${apt.lat - d},${apt.lon + d},${apt.lat + d}`, geometryType: "esriGeometryEnvelope", inSR: "4326",
+          spatialRel: "esriSpatialRelIntersects", outFields: "AIRPORT_ID,DESIGNATOR,LENGTH,WIDTH", outSR: "4326", f: "geojson",
+        });
+        try {
+          const r = await fetchT(`${FAA_RWY_URL}?${qs}`, 12000);
+          if (!r.ok) return [apt.icao, null];
+          const j = await r.json();
+          return [apt.icao, parseFaaRunways(j.features, apt.lat, apt.lon)];
+        } catch { return [apt.icao, null]; }
+      }));
+      const geo = {};
+      let got = 0;
+      for (const [icao, list] of results) if (list && list.length) { geo[icao] = list; got++; }
+      if (!got) return; // keep whatever we had (stale cache or the heading table)
+      runwayGeo = geo;
+      try { localStorage.setItem(RWY_GEO_KEY, JSON.stringify({ t: Date.now(), data: geo })); } catch {}
+      renderAirportsOnly();
+    }
+
+    // Collapse parallel designators for one label: ["03L","03R","04L","04R"] -> "03L/R · 04L/R"
+    function compactNames(names) {
+      const byNum = new Map();
+      for (const n of names) {
+        const m = /^(\d+)(.*)$/.exec(n) || [n, n, ""];
+        if (!byNum.has(m[1])) byNum.set(m[1], []);
+        if (m[2]) byNum.get(m[1]).push(m[2]);
+      }
+      return [...byNum.entries()].sort((a, b) => Number(a[0]) - Number(b[0])).map(([num, sfx]) => num + (sfx.length ? sfx.sort().join("/") : "")).join(" · ");
+    }
+
+    // Build the drawable model: runways as segments in SVG space plus one labelled end per parallel group.
+    function sketchModel(rwys, geo) {
+      const segs = [], ends = [];
+      if (geo && geo.length) {
+        // Fit all thresholds inside the circle
+        const pts = geo.flatMap(r => [r.a, r.b]);
+        const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length, cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+        const maxR = Math.max(1, ...pts.map(p => Math.hypot(p.x - cx, p.y - cy)));
+        const k = SK.r / maxR;
+        const toSvg = p => ({ x: SK.cx + (p.x - cx) * k, y: SK.cy - (p.y - cy) * k });
+        for (const r of geo) {
+          const a = toSvg(r.a), b = toSvg(r.b);
+          segs.push({ a, b, w: Math.max(7, r.width * k), names: [r.le, r.he] });
+          ends.push({ name: r.le, hdg: r.hdg, out: (r.hdg + 180) % 360, p: a, rwy: segs.length - 1 });
+          ends.push({ name: r.he, hdg: (r.hdg + 180) % 360, out: r.hdg, p: b, rwy: segs.length - 1 });
+        }
+      } else {
+        const maxLen = Math.max(...rwys.map(r => r.len || 1));
+        for (const r of rwys) {
+          const half = SK.r * Math.max(0.45, (r.len || maxLen) / maxLen);
+          const a = skPt(r.le_hdg, half), b = skPt(r.he_hdg, half);
+          segs.push({ a, b, w: 9, names: [r.le, r.he] });
+          ends.push({ name: r.le, hdg: r.he_hdg, out: r.le_hdg, p: a, rwy: segs.length - 1 });
+          ends.push({ name: r.he, hdg: r.le_hdg, out: r.he_hdg, p: b, rwy: segs.length - 1 });
+        }
+      }
+      // Group ends that are parallel (within 12°) and close together (within 110 units) -> one label
+      const groups = [];
+      for (const e of ends) {
+        const g = groups.find(g => angDiff(g.out, e.out) <= 12 && Math.hypot(g.p.x - e.p.x, g.p.y - e.p.y) <= 110);
+        if (g) { g.ends.push(e); g.p = { x: g.ends.reduce((s, x) => s + x.p.x, 0) / g.ends.length, y: g.ends.reduce((s, x) => s + x.p.y, 0) / g.ends.length }; }
+        else groups.push({ out: e.out, hdg: e.hdg, p: { ...e.p }, ends: [e] });
+      }
+      for (const g of groups) g.label = compactNames(g.ends.map(e => e.name));
+      return { segs, ends, groups };
+    }
+
+    function runwaySketchSvg(rwys, m, geo) {
+      const hasGeo = Array.isArray(geo) && geo.length > 0;
+      if (!hasGeo && !(rwys && rwys.length)) return "";
       const calm = !m || !m.wspd || m.wspd === 0;
       const vrb = !calm && m.wdir === "VRB";
       const wdir = (!calm && !vrb) ? Number(m.wdir) : null;
       const showComp = wdir != null && !isNaN(wdir);
-      const maxLen = Math.max(...rwys.map(r => r.len || 1));
-      const best = showComp ? bestRunwayEnd(ends, wdir, m.wspd) : null;
-      const bestRwy = best ? rwys.find(r => r.le === best || r.he === best) : null;
+      const model = sketchModel(rwys || [], hasGeo ? geo : null);
+      const best = showComp ? bestRunwayEnd(model.ends, wdir, m.wspd) : null;
+      const bestSeg = best != null ? model.segs.find(sg => sg.names.includes(best)) : null;
       const f2 = n => Math.round(n * 10) / 10;
       let svg = `<svg class="rwy-sketch" viewBox="0 0 ${SK.w} ${SK.h}" role="img" aria-label="Runway wind sketch">`;
-      // legend: wind (top-left) and north (top-right)
       const windTxt = calm ? "Wind calm" : vrb ? `Wind variable at ${m.wspd} kt${m.wgst ? ", gusting " + m.wgst + " kt" : ""}`
         : `Wind ${String(wdir).padStart(3, "0")}° at ${m.wspd} kt${m.wgst ? ", gusting " + m.wgst + " kt" : ""}`;
       svg += `<text x="8" y="17" font-size="13" class="sk-muted">${esc(windTxt)}</text>`;
       svg += `<text x="${SK.w - 8}" y="17" font-size="13" text-anchor="end" class="sk-muted">N ↑</text>`;
-      // runways, longest spans the full circle; short ones never shrink below 45% so they stay visible
-      for (const rwy of rwys) {
-        const half = SK.r * Math.max(0.45, (rwy.len || maxLen) / maxLen);
-        const a = skPt(rwy.le_hdg, half), b = skPt(rwy.he_hdg, half);
-        svg += `<line class="sk-rwy${rwy === bestRwy ? " best" : ""}" x1="${f2(a.x)}" y1="${f2(a.y)}" x2="${f2(b.x)}" y2="${f2(b.y)}"/>`;
+      svg += `<text x="8" y="${SK.h - 8}" font-size="11" class="sk-muted">${hasGeo ? "FAA runway footprints" : "Runway headings (FAA footprints unavailable)"}</text>`;
+      for (const sg of model.segs) {
+        svg += `<line class="sk-rwy${sg === bestSeg ? " best" : ""}" style="stroke-width:${f2(sg.w)}" x1="${f2(sg.a.x)}" y1="${f2(sg.a.y)}" x2="${f2(sg.b.x)}" y2="${f2(sg.b.y)}"/>`;
       }
-      // wind arrow: from the direction the wind blows FROM, toward the center
       if (showComp) {
         const tail = skPt(wdir, 70), head = skPt(wdir, 18);
         const ux = (tail.x - head.x) / 52, uy = (tail.y - head.y) / 52; // unit vector head→tail
@@ -689,32 +859,26 @@
         svg += `<line class="sk-wind" x1="${f2(tail.x)}" y1="${f2(tail.y)}" x2="${f2(bx)}" y2="${f2(by)}"/>`;
         svg += `<polygon class="sk-wind-head" points="${f2(head.x)},${f2(head.y)} ${f2(bx - uy * 6)},${f2(by + ux * 6)} ${f2(bx + uy * 6)},${f2(by - ux * 6)}"/>`;
       }
-      // end labels: designator, then Headwind/Tailwind and crosswind lines
-      for (const e of ends) {
-        const half = SK.r * Math.max(0.45, (e.len || maxLen) / maxLen);
-        const p = skPt(e.hdg, Math.max(half, 0.75 * SK.r) + 10);
-        const L = skLabelLayout(e.hdg);
+      const lineCount = showComp ? 3 : 1, lh = 15;
+      for (const b of layoutLabels(model.groups, lineCount)) {
+        const g = b.g;
         const lines = [];
         if (showComp) {
-          const c = windComponents(wdir, m.wspd, e.hdg);
+          const c = windComponents(wdir, m.wspd, g.hdg);
           const xwColor = c.crosswind >= 15 ? "var(--ifr)" : c.crosswind >= 10 ? "var(--caution-border)" : "var(--text-muted)";
           lines.push({ t: c.tailwind ? `Tailwind ${c.headwind} kt` : `Headwind ${c.headwind} kt`, fill: c.tailwind ? "var(--ifr)" : "var(--text)" });
           lines.push({ t: c.crosswind > 0 ? `XW ${c.crosswind} kt ${c.side}` : "XW 0 kt", fill: xwColor });
         }
-        const n = 1 + lines.length, lh = 15;
-        let x = p.x, y0;
-        if (L.pos === "top") y0 = p.y - 4 - (n - 1) * lh;
-        else if (L.pos === "bottom") y0 = p.y + 16;
-        else { x = p.x + (L.anchor === "start" ? 6 : -6); y0 = p.y + 5 - ((n - 1) * lh) / 2; }
-        const isBest = e.name === best;
+        if (b.leader) svg += `<line class="sk-leader" x1="${f2(g.p.x)}" y1="${f2(g.p.y)}" x2="${f2(b.leader.x)}" y2="${f2(b.leader.y)}"/>`;
+        const y0 = b.y - b.h / 2 + 15; // baseline of the designator line
+        const isBest = best != null && g.ends.some(e => e.name === best);
         if (isBest) {
-          const w = e.name.length * 9.5 + 12, h = 19;
-          const rx = L.anchor === "start" ? x - 6 : L.anchor === "end" ? x - w + 6 : x - w / 2;
-          svg += `<rect class="sk-pill" x="${f2(rx)}" y="${f2(y0 - 14)}" width="${f2(w)}" height="${h}" rx="5"/>`;
+          const w = g.label.length * 9.5 + 12;
+          svg += `<rect class="sk-pill" x="${f2(b.x - w / 2)}" y="${f2(y0 - 14)}" width="${f2(w)}" height="19" rx="5"/>`;
         }
-        svg += `<text x="${f2(x)}" y="${f2(y0)}" font-size="15" font-weight="700" text-anchor="${L.anchor}"${isBest ? ' class="sk-pill-text"' : ""}>${esc(e.name)}</text>`;
+        svg += `<text x="${f2(b.x)}" y="${f2(y0)}" font-size="15" font-weight="700" text-anchor="middle"${isBest ? ' class="sk-pill-text"' : ""}>${esc(g.label)}</text>`;
         lines.forEach((ln, i) => {
-          svg += `<text x="${f2(x)}" y="${f2(y0 + (i + 1) * lh)}" font-size="14" text-anchor="${L.anchor}" style="fill:${ln.fill}">${esc(ln.t)}</text>`;
+          svg += `<text x="${f2(b.x)}" y="${f2(y0 + (i + 1) * lh)}" font-size="14" text-anchor="middle" style="fill:${ln.fill}">${esc(ln.t)}</text>`;
         });
       }
       svg += `</svg>`;
@@ -1045,10 +1209,10 @@
 
         // Runway wind components — sketch shown whenever runway data exists (calm/variable add a note)
         const rwys = RUNWAYS[apt.icao];
-        if (rwys && m) {
+        if ((rwys || runwayGeo[apt.icao]) && m) {
           html += `<details data-key="rwy-${apt.icao}" style="margin-bottom:8px"><summary style="font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer">Runway winds</summary>
           <div style="margin-top:6px;display:grid;gap:6px;font-size:12px">`;
-          html += runwaySketchSvg(rwys, m);
+          html += runwaySketchSvg(rwys || [], m, runwayGeo[apt.icao]);
           if (!m.wspd || m.wspd === 0) {
             // Calm winds — section still visible so students know it exists
             html += `<div style="background:color-mix(in srgb, var(--border) 30%, transparent);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text-muted)">Calm — no crosswind component</div>`;
@@ -1847,7 +2011,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.35";
+    const CURRENT_VERSION = "v1.36";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());
@@ -2547,6 +2711,7 @@
 
     // ========== INIT ==========
     fetchData();
+    fetchRunwayGeo();
     fetchBGForecast();
     checkTFRs();
     fetchWindsAloft();

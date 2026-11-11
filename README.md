@@ -13,7 +13,7 @@ Live site: https://aert2800wx.netlify.app
   - `version.txt` — current version; the app checks it to show an "update available" banner
   - `manifest.json`, `favicon.svg`, `icon-*.png` — home-screen/PWA metadata
 - `scripts/deploy.py` — uploads `site/` to Netlify with the file-digest API (`--draft` for a preview)
-- `tests/`, `package.json` — static checks and unit tests (`npm test`, Node 20+, no dependencies). Not scheduled; run on demand.
+- `tests/`, `package.json` — static checks and unit tests (`tests/fixtures/` holds saved FAA runway footprints) (`npm test`, Node 20+, no dependencies). Not scheduled; run on demand.
 - `AGENTS.md`, `INTENT.md`, `SPEC.md`, `BACKLOG.md` — project docs for contributors and AI agents
 
 ## Deploy

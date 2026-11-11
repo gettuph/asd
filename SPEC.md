@@ -1,12 +1,13 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.35** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.36** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
 
 - One static file, `site/index.html` (HTML, CSS, and JavaScript inline). No framework and no build step. Everything served lives in `site/`; docs, tests, and the deploy script sit at the repo root.
 - Hosted on Netlify (site `aert2800wx`). The publish directory is `site/`.
+- The FAA ADDS runway-footprint layer (`services6.arcgis.com/ssFJjBXIUyZDrSYZ/.../Runways/FeatureServer/0`) is fetched directly; it sends `Access-Control-Allow-Origin: *`, so no proxy rule is needed. Its quota is about 6000 request units per minute per client, so it is fetched once per 56 days, not per refresh.
 - `_redirects` provides same-origin reverse proxies:
 
 | Path | Upstream |
@@ -57,12 +58,14 @@ Each card shows, in this order:
    - Density altitude is pressure altitude plus 120 × (OAT − ISA temperature). Pressure altitude comes from the altimeter setting, and field elevation from the AWC `elev` field.
 4. **TAF** (tap to expand): each line is colored by flight category (VFR green, MVFR blue, IFR red, LIFR purple).
    - Visibility parsing must handle fractions and `M1/4SM`, and must not read times as visibility.
-5. **Runway winds** (collapsible): a north-up SVG sketch (`runwaySketchSvg`) replaces the former table. It is always shown when runway data exists.
-   - Runways are drawn at their true headings from the `RUNWAYS` table, scaled to length (longest spans the circle; none shrinks below 45% so short runways stay visible). Parallel pairs such as DTW 03/04 are drawn once.
+5. **Runway winds** (collapsible): a north-up SVG sketch (`runwaySketchSvg`) of the airport's actual runway layout. It is always shown when runway data exists.
+   - **Geometry source:** the FAA ADDS "Runways" footprint layer (ArcGIS FeatureServer, public, CORS-open, no key), queried once per airport at page load by a ±0.03° envelope around the airport point (`fetchRunwayGeo`). Results are cached in `localStorage` (`asd.rwygeo.v1`) for 56 days, the FAA's publication cycle. The nearest airport's polygons are kept; helipads (`H…`) and closed/unverified (`…X`) designators are dropped (`parseFaaRunways`). The caption reads "FAA runway footprints".
+   - Each footprint polygon is reduced to its centerline and width (`ringAxis`, principal axis); the true heading comes from the geometry and the low-numbered end is the one whose outbound bearing matches its designator. Runways are drawn to scale in position, length, and orientation; pavement width is exaggerated to a minimum of 7 units so it reads on screen.
+   - **Fallback:** if the FAA layer is unreachable and nothing is cached, the sketch uses the `RUNWAYS` heading table (lines through a common center) and the caption reads "Runway headings (FAA footprints unavailable)". Table headings are checked against the footprints in `npm test`.
    - A blue arrow points from the direction the wind blows **from** toward the center; the legend reads "Wind 060° at 7 kt" (plus "gusting N kt"). "N ↑" marks north.
-   - Each runway end carries three lines: designator, "Headwind N kt" or "Tailwind N kt" (tailwind in red), and "XW N kt L/R" (amber at ≥10 kt, red at ≥15 kt). Words are spelled out; no checkmarks. Components use the existing `windComponents` math on the sustained wind.
-   - The favored end (`bestRunwayEnd`: greatest headwind, ties to the smaller crosswind) gets a green pill, and its runway is drawn darker.
-   - Labels beside ends within about 22° of vertical stack above/below; all others sit beside the end. ViewBox 440×330; the SVG fills the card up to 460 px wide, so label text runs from about 10.5 px on a phone to 15 px on a wide card.
+   - **Labels:** parallel ends within 12° and 110 units share one label (`compactNames`: "03L/R · 04L/R"). Each label has the designator, "Headwind N kt" or "Tailwind N kt" (tailwind in red), and "XW N kt L/R" (amber ≥10 kt, red ≥15 kt), spelled out with no checkmarks, from the existing `windComponents` math on the sustained wind. `layoutLabels` starts each label just outside its runway end, pushes overlapping labels apart, keeps them inside the drawing and off the runway area, and draws a thin leader when a label ends up more than 14 units from its end.
+   - The favored end (`bestRunwayEnd`: greatest headwind, ties to the smaller crosswind) gets a green pill and its runway is drawn darker.
+   - ViewBox 440×360; the SVG fills the card up to 460 px wide, so label text runs from about 10.5 px on a phone to 15 px on a wide card.
    - Calm → sketch with designators only plus "Calm — no crosswind component"; Variable → sketch with designators only plus "Variable at X kt — crosswind component indeterminate". No arrow, no components, no pill in either case.
 6. **Remaining callouts:** fog risk from a small temperature/dewpoint spread, icing range, low altimeter, convective activity, freezing precipitation, snow, and TAF alternate analysis.
    - They are based only on the METAR body before `RMK`.
@@ -177,6 +180,7 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 | TFR check | 5 min |
 | Version check | 5 min |
 | Airport lookup | on demand only (Go / Enter) |
+| FAA runway footprints | once per page load, served from a 56-day localStorage cache |
 | NWS alerts | 15 min |
 | Winds aloft | 60 min |
 | BG high/low (Open-Meteo) | 60 min |

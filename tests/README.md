@@ -30,7 +30,7 @@ Requires Node 20+. No dependencies to install.
 **Unit tests** load the real inline script into a Node VM with a fake DOM (`harness.js`) and exercise the pure functions:
 - `taf.test.js` — `tafLineCat` flight categories (including the fraction-after-time-group and `M1/4SM` bugs), `colorTaf`.
 - `metar.test.js` — ceilings (`OVX`), sky wording, `getCat` thresholds, altimeter inHg, density altitude, wind/temperature text, escaping.
-- `runway.test.js` — headwind/crosswind math, best-runway choice, `RUNWAYS` table sanity, runway wind sketch (`runwayEnds`, `bestRunwayEnd`, north-up geometry, label layout, SVG output for wind / calm / variable, three-runway labels inside the viewBox, escaping).
+- `runway.test.js` — headwind/crosswind math, best-runway choice, `RUNWAYS` table sanity, runway wind sketch (`runwayEnds`, `bestRunwayEnd`, north-up geometry, SVG output for wind / calm / variable, escaping), and the FAA footprint path (`parseFaaRunways`, `ringAxis`, `compactNames`, `layoutLabels` no-overlap check for all 15 airports, footprint vs. fallback output) against `fixtures/faa_runways.json`, a saved copy of the FAA ADDS Runways layer for our airports.
 - `geo.test.js` — haversine, point-in-polygon, distance to polygon edge, `AIRPORTS` table.
 - `header-weather.test.js` — rain/snow/lightning detection from the METAR body only.
 - `misc.test.js` — winds-aloft decoder, midnight clock, DST abbreviation, NWS alert table, proxy map, top-level entry points, `normalizeIcao`, `metarDetailHtml`.

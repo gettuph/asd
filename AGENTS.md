@@ -46,7 +46,8 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
    - Don't size images with `height: 100%` inside flex or grid panes. Use absolute positioning inside a sized pane.
 10. **Keep functions at the top level.** After any large edit, confirm the braces balance and that `fetchData`, `fetchAlerts`, `checkTFRs`, and `fetchWindsAloft` are still global.
 11. **Script order.** The modals (`#briefModal`, `#lookupModal`, `#alertModal`, `#tfrModal`) sit after the inline `<script>`, so `document.getElementById` on them returns `null` while the script runs. Never attach a top-level listener to them — use an inline `on…` attribute or wire it inside a function. One such line threw at load and froze the page on "Loading data…" (v1.32 draft). `npm test` checks for this.
-12. **No secrets in the repo.** Netlify tokens and other credentials belong in a secure credential store. Never put them in code, commits, or docs.
+12. **Airport reference data comes from the FAA where possible.** Runway geometry is the FAA ADDS footprint layer; the `RUNWAYS` heading table is only the offline fallback and `npm test` checks it against the FAA fixture. Airport coordinates were checked against the FAA `US_Airport` layer in v1.36 (KDUH had been 8 nm off). When adding an airport, take lat/lon and runway headings from FAA data, not memory.
+13. **No secrets in the repo.** Netlify tokens and other credentials belong in a secure credential store. Never put them in code, commits, or docs.
 
 ## Versioning
 
