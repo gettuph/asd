@@ -121,3 +121,12 @@ test('metarDetailHtml renders badge, raw text and altimeter in inHg', () => {
   assert.match(html, /KTOL 111852Z/);
   assert.match(html, /10 SM/);
 });
+
+test('closeLookupModal clears both LocID boxes so the placeholder returns', () => {
+  const ids = ['lookupInput', 'lookupModalInput'];
+  const els = {};
+  const origGet = ctx.document.getElementById;
+  ctx.document.getElementById = id => (els[id] ||= { value: 'KTOL', style: {}, classList: { contains: () => false, add(){}, remove(){} } });
+  try { ctx.closeLookupModal(); } finally { ctx.document.getElementById = origGet; }
+  for (const id of ids) assert.equal(els[id].value, '', id);
+});

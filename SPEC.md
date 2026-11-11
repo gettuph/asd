@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.33** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.34** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -156,7 +156,7 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 - **Identifier handling (`normalizeIcao`):** trimmed, upper-cased, non-alphanumerics removed. A three-letter alphabetic ID gets a `K` prefix (TOL → KTOL). Anything else is sent as typed (CYYZ, EGLL, 1G0).
 - **Content:** METAR (category badge, raw text, decoded fields including density altitude — the same `metarDetailHtml` block the briefing view uses, with the observation time and age), then the TAF colored by category with its issue time. Missing data shows "No METAR found for XXXX." / "No TAF issued for XXXX."; an unreachable AWC shows "Could not reach Aviation Weather Center. Try again in a moment."
 - **Fetching:** only when Go is pressed, through the existing `/awc/metar/` and `/awc/taf/` proxies (`wxFetch`). Nothing is polled; the 15-airport refresh cycle is unaffected. A newer lookup supersedes a slower earlier one.
-- Closes with ×, Escape, or a click on the backdrop. Pull-to-refresh is blocked inside it.
+- Closes with ×, Escape, or a click on the backdrop; closing clears both boxes so the `LocID` placeholder shows again. Pull-to-refresh is blocked inside it.
 - Text size: raw METAR/TAF `clamp(14px, 1.1vw, 22px)`, decoded fields `clamp(13px, 1vw, 19px)`.
 
 ## 10. ADS-B and ATC Brief tabs

@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.33</title>
+  <title>Aviation Situation Dashboard v1.34</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -418,7 +418,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.33&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.34&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1761,7 +1761,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.33";
+    const CURRENT_VERSION = "v1.34";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());
@@ -1874,6 +1874,9 @@
     function closeLookupModal() {
       document.getElementById('lookupModal').style.display = 'none';
       if (!briefOpen()) document.body.style.overflow = '';
+      // Clear both boxes so the LocID placeholder shows again
+      document.getElementById('lookupInput').value = '';
+      document.getElementById('lookupModalInput').value = '';
     }
     async function lookupAirport(raw) {
       const id = normalizeIcao(raw);
