@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.30** (`CURRENT_VERSION` in `index.html` and `version.txt`).
+Current version: **v1.31** (`CURRENT_VERSION` in `index.html` and `version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -140,11 +140,12 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
   - Central Great Lakes radar loop.
   - Local and Zulu clock.
 - **Layouts:**
-  - 1400 px and wider: 3 columns (METAR over TAF, then the prog chart, then radar). The two images get equal width with no cropping or stretching.
+  - 1400 px and wider: 3 columns (METAR over TAF, then the prog chart, then radar). The text column is 1.25× the width of each image column; the two images get equal width with no cropping or stretching.
   - iPad landscape: 2×2.
   - iPad portrait: METAR | TAF over the charts, scrollable.
   - Phone: single column.
-- **Text size:** scales with viewport width (about 29 px raw METAR and 25 px TAF on a 1920-wide screen). Panes scroll instead of clipping.
+- **Text size:** the raw METAR and the TAF always use the same size, scaled with viewport width: about 34 px on a 1920-wide display (`clamp(22px, 1.75vw, 36px)`), 20 px on an iPad in landscape, 16 px on a phone. Decoded METAR fields are one step smaller (about 27 px at 1920).
+- **Row heights (1400 px and wider):** the METAR row sizes to its content up to 58 vh and the TAF row takes the rest (`grid-template-rows: fit-content(58vh) minmax(0,1fr)`). A typical 3-line METAR and a 7-period TAF both fit at 1080p without scrolling; an unusually long METAR borrows height from the TAF, which then scrolls. Panes scroll instead of clipping.
 - **Images:** positioned absolutely inside their panes so Safari can't overflow the grid. Grid tracks use a minimum of 0.
 
 ## 10. ADS-B and ATC Brief tabs

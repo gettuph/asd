@@ -53,3 +53,5 @@ These came out of the decisions made while building the app. When a new request 
 Shelved ideas and open items are in `BACKLOG.md`.
 
 - **Regional radius is 150 nm.** PIREPs, SIGMETs, and G-AIRMETs all use 150 nm from 1G0 (owner decision, Nov 2026; an earlier 100 nm PIREP request is superseded).
+
+- **Briefing view type is sized for the back of a classroom.** The raw METAR and TAF are always the same size and as large as the layout allows (owner request, Nov 2026, v1.29 and v1.31). When space is tight, prefer letting a pane scroll over shrinking the type.

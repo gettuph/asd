@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.30</title>
+  <title>Aviation Situation Dashboard v1.31</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -310,7 +310,9 @@
     .brief-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 18px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
     .brief-head h2 { font-size:18px; font-weight:700; margin:0; display:flex; align-items:center; gap:12px; }
     .brief-head .sub { font-size:13px; color:var(--text-muted); font-weight:400; }
-    .brief-grid { flex:1; min-height:0; display:grid; grid-template-columns:minmax(440px, 0.95fr) minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr) minmax(0,1fr); gap:12px; padding:12px; }
+    /* Row 1 (METAR) sizes to its content up to 58vh; row 2 (TAF) gets the rest. A long METAR with remarks
+       borrows height from the TAF instead of hiding its decoded fields behind a scrollbar. */
+    .brief-grid { flex:1; min-height:0; display:grid; grid-template-columns:minmax(440px, 1.25fr) minmax(0,1fr) minmax(0,1fr); grid-template-rows:fit-content(58vh) minmax(0,1fr); gap:12px; padding:12px; }
     .brief-pane.p-metar { grid-column:1; grid-row:1; }
     .brief-pane.p-taf   { grid-column:1; grid-row:2; }
     .brief-pane.p-prog  { grid-column:2; grid-row:1 / span 2; }
@@ -320,12 +322,12 @@
     .brief-pane .pb { padding:12px 14px; overflow:auto; flex:1; min-height:0; }
     .brief-pane .pb.img { position:relative; padding:0; overflow:hidden; }
     .brief-pane .pb.img img { position:absolute; top:6px; left:6px; width:calc(100% - 12px); height:calc(100% - 12px); object-fit:contain; border-radius:4px; }
-    .brief .raw-metar { font-size:clamp(20px, 1.5vw, 30px); line-height:1.5; padding:12px 14px; }
+    .brief .raw-metar { font-size:clamp(22px, 1.75vw, 36px); line-height:1.45; padding:12px 14px; }
     .brief .decoded { grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 18px; margin-top:12px; }
-    .brief .decoded-item { font-size:clamp(18px, 1.3vw, 26px); }
+    .brief .decoded-item { font-size:clamp(18px, 1.4vw, 28px); }
     .brief .decoded-item svg { width:1.1em; height:1.1em; }
     .brief .cat-badge { font-size:clamp(14px, 1vw, 20px) !important; padding:4px 12px !important; }
-    .brief .taf { font-family:var(--mono); font-size:clamp(18px, 1.3vw, 26px); line-height:1.6; white-space:pre-wrap; word-break:break-word; }
+    .brief .taf { font-family:var(--mono); font-size:clamp(22px, 1.75vw, 36px); line-height:1.45; white-space:pre-wrap; word-break:break-word; }
     .brief-pane .ph { font-size:clamp(12px, 0.8vw, 16px); }
     /* Tablets & small laptops (landscape): 2×2 that fits the screen — METAR | Prog over TAF | Radar */
     @media (max-width: 1399px) {
@@ -334,10 +336,10 @@
       .brief-pane.p-prog  { grid-column:2; grid-row:1; }
       .brief-pane.p-taf   { grid-column:1; grid-row:2; }
       .brief-pane.p-radar { grid-column:2; grid-row:2; }
-      .brief .raw-metar { font-size:clamp(15px, 1.6vw, 22px); padding:10px 12px; }
+      .brief .raw-metar { font-size:clamp(16px, 1.7vw, 24px); padding:10px 12px; }
       .brief .decoded { gap:6px 14px; margin-top:10px; }
       .brief .decoded-item { font-size:clamp(14px, 1.45vw, 20px); }
-      .brief .taf { font-size:clamp(14px, 1.45vw, 20px); }
+      .brief .taf { font-size:clamp(16px, 1.7vw, 24px); }
     }
     /* Portrait tablets: text on top, charts below, scrollable */
     @media (max-width: 1399px) and (orientation: portrait) {
@@ -348,8 +350,8 @@
       .brief-pane.p-radar { grid-column:2; grid-row:2; }
       .brief-pane.p-metar, .brief-pane.p-taf { max-height:55vh; }
       .brief-pane.p-prog, .brief-pane.p-radar { height:min(60vh, 50vw); }
-      .brief .raw-metar { font-size:clamp(16px, 1.9vw, 24px); }
-      .brief .decoded-item, .brief .taf { font-size:clamp(15px, 1.7vw, 22px); }
+      .brief .raw-metar, .brief .taf { font-size:clamp(16px, 2vw, 26px); }
+      .brief .decoded-item { font-size:clamp(15px, 1.7vw, 22px); }
     }
     /* Phones: single column */
     @media (max-width: 700px) {
@@ -386,7 +388,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.30&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.31&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1722,7 +1724,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.30";
+    const CURRENT_VERSION = "v1.31";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());
