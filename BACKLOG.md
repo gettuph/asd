@@ -4,7 +4,7 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Needs a decision
 
-- **PIREP radius.** The owner asked for 100 nm in v.059. The code filtered at 100 nm but the card label said 150 nm; v1.24 changed the filter to 150 nm to match the label and the SIGMET/AIRMET radius. If 100 nm is preferred, change both the filter in `renderRegional()` and the card title.
+- Nothing open.
 
 ## Fixes and cleanup
 

@@ -51,3 +51,5 @@ These came out of the decisions made while building the app. When a new request 
 ## Backlog
 
 Shelved ideas and open items are in `BACKLOG.md`.
+
+- **Regional radius is 150 nm.** PIREPs, SIGMETs, and G-AIRMETs all use 150 nm from 1G0 (owner decision, Nov 2026; an earlier 100 nm PIREP request is superseded).
