@@ -30,6 +30,6 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 These were suggested in v.051. Only the Convective Outlook and CWAs were built.
 
-- D-ATIS for KTOL and KDTW.
+- D-ATIS for airports that have it available. https://atisrelay.com/api_docs
 - NWS Area Forecast Discussion (CLE or ILN offices).
 - Side-by-side icing PIREPs and G-AIRMET icing.
