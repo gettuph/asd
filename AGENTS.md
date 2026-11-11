@@ -51,14 +51,22 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
 - On every release, update both `CURRENT_VERSION` in `index.html` and `version.txt` to the same value. The in-app update banner depends on it.
 - Small fixes made at the owner's request can keep the same version if the owner says so.
 
-## Change workflow
+## Change workflow (required for every change)
 
 1. Make the edit in `index.html`, along with `_redirects` and `version.txt` if needed.
 2. Test locally or on a Netlify draft deploy. There should be no console errors, METARs and TAFs should load, and every tab should render.
 3. Check the layout on a phone, iPad portrait and landscape, desktop, and a 1920×1080 projector.
-4. Deploy to production (Netlify API deploy of the repo root), then confirm the live `version.txt` changed.
-5. Commit with a clear message that names the version.
-6. Big visual features should be self-contained so they can be rolled back in one deploy.
+4. **Deploy to Netlify** production (API deploy of the repo root), then confirm the live `version.txt` shows the new version.
+5. **Update the relevant docs** to match what shipped:
+   - `SPEC.md`: what the app does now, including the version number at the top.
+   - `BACKLOG.md`: remove items that shipped and add new ideas or open questions.
+   - `INTENT.md`: new lasting decisions or principles.
+   - `AGENTS.md`: new rules or lessons learned.
+   - `README.md`: if the file list or deploy steps changed.
+6. **Commit and push to GitHub** (`gettuph/asd`, branch `main`) with a message that names the version, for example "v1.31: Larger TAF text in briefing view".
+7. Big visual features should be self-contained so they can be rolled back in one deploy.
+
+The GitHub repo must always match what is live on Netlify. If a deploy fails, don't commit it as shipped.
 
 ## Known external issues (not bugs)
 
