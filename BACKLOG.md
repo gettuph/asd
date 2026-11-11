@@ -4,13 +4,11 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Needs a decision
 
-- **PIREP radius.** The owner asked for 100 nm in v.059, but the current code and card label use 150 nm. Confirm which is correct.
+- **PIREP radius.** The owner asked for 100 nm in v.059. The code filtered at 100 nm but the card label said 150 nm; v1.24 changed the filter to 150 nm to match the label and the SIGMET/AIRMET radius. If 100 nm is preferred, change both the filter in `renderRegional()` and the card title.
 
 ## Fixes and cleanup
 
-- **Refresh button coverage.** The v.094 audit found the refresh button only refreshed METARs and TAFs, not alerts, winds aloft, or TFRs. Check whether this is still true and fix it if so.
-- **SUA proxy.** Special Use Airspace (ArcGIS) still uses the third-party proxies codetabs and allorigins. Add a Netlify `_redirects` rule.
-- **NWS alerts in one call.** Alerts currently make one call per airport (15 calls). Consider a single area or zone query.
+- **NWS alerts in one call.** Alerts currently make one call per airport (15 calls every 15 min). A single area or zone query would be cheaper, but matching alerts to airports by zone geometry is fragile. Only worth doing if NWS rate limits become a problem.
 
 ## Waiting on outside changes
 

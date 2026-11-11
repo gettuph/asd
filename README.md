@@ -15,3 +15,5 @@ Live site: https://aert2800wx.netlify.app
 
 ## Deploy
 Static site, no build step. On Netlify, set the publish directory to the repo root.
+
+`_redirects` must keep the `?` before `:splat` on the AWC rules (for example `metar?:splat`); the app calls `/awc/metar/ids=...&format=json` and the proxy has to turn that path into a query string.
