@@ -14,6 +14,11 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 - **Per-airport NOTAM links.** These were removed because FAA NOTAM Search can't link directly to an airport. Revisit when the FAA's NOTAM system supports it (expected after the October update).
 
+## Testing (next layer, not built)
+
+- **Browser tests with Playwright** against saved AWC fixtures: no console errors, 15 cards, outage banner behaviour, open `<details>` surviving re-render, briefing view with no pane overlaps at 390×844 / 820×1180 / 1180×820 / 1920×1080, no CAVU iframe before click, disclaimers present.
+- **Production smoke check** (run on command): live `version.txt` matches served `CURRENT_VERSION`; each `_redirects` proxy returns JSON; KTOL METAR present.
+
 ## Shelved ideas
 
 - **Aviation events within 150 nm** (fly-ins, airshows). There is no free API. Options are AOPA or EAA link cards, or a list updated by hand each semester.

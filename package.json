@@ -1,0 +1,11 @@
+{
+  "name": "asd",
+  "private": true,
+  "description": "Aviation Situation Dashboard — test runner only; the app itself has no build step",
+  "scripts": {
+    "test": "node tests/static-checks.js && node --test tests/*.test.js",
+    "test:static": "node tests/static-checks.js",
+    "test:unit": "node --test tests/*.test.js"
+  },
+  "engines": { "node": ">=20" }
+}
