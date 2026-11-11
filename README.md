@@ -11,6 +11,7 @@ Live site: https://aert2800wx.netlify.app
 - `_redirects` — Netlify reverse-proxy rules for aviationweather.gov, api.weather.gov, and tfr.faa.gov
 - `version.txt` — current version; the app checks it to show an "update available" banner
 - `manifest.json`, icons — home-screen/PWA metadata
+- `AGENTS.md`, `INTENT.md`, `SPEC.md`, `BACKLOG.md` — project docs for contributors and AI agents
 
 ## Deploy
 Static site, no build step. On Netlify, set the publish directory to the repo root.
