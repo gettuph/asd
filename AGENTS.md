@@ -19,6 +19,7 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
 - If the owner says "don't change anything" or "just wondering," answer the question only. Don't edit code or deploy.
 - Ask before adding new features. Make requested changes exactly as described, and don't add extras.
 - Keep summaries short: the version number, what changed, and anything the owner needs to do.
+- **Backlog items are not approval.** When the owner says to check `BACKLOG.md`, read it, pick the item(s) the owner points to (or the most relevant if unspecified), and reply with a short proposal: what would change, where, the version number it would ship as, and any trade-offs or questions. Build only after the owner says yes to that proposal. Never deploy straight from the backlog.
 
 ## Rules
 
