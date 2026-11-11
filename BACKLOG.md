@@ -5,7 +5,7 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 ## Needs a decision
 
 - Add a small text box and a Go button to allow a user to input a airport's location identifier (LOCID) and have the METAR and TAF, if available, pop up in a modal. The modal should also include the text box and go button in case the user wants to check weather at a different airport.
-- Is there a way to add a 
+- Is there a way to add an airport sketch that shows the headwinds, tailwinds, and crosswinds instead of using the table?
 
 ## Fixes and cleanup
 
@@ -22,10 +22,7 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Shelved ideas
 
-- **Aviation events within 150 nm** (fly-ins, airshows). There is no free API. Options are AOPA or EAA link cards, or a list updated by hand each semester.
-- **Combined TFR map.** Show all nearby TFRs on one map. The owner chose per-TFR modals for now.
 - **App store versions.** Wrap the app with Capacitor or similar. Apple may reject apps that only wrap a website.
-- **Service worker.** Full PWA offline caching. It's of little value for live weather.
 
 ## Ideas offered but not chosen
 
@@ -34,3 +31,4 @@ These were suggested in v.051. Only the Convective Outlook and CWAs were built.
 - D-ATIS for airports that have it available. https://atisrelay.com/api_docs
 - NWS Area Forecast Discussion (CLE or ILN offices).
 - Side-by-side icing PIREPs and G-AIRMET icing.
+- Agent to call 1G0 ASOS at 55 minutes past each hour and transcribe the METAR from the ASOS.
