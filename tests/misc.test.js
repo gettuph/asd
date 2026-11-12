@@ -70,10 +70,10 @@ test('every AWC proxy path used in JS has a _redirects rule', () => {
   assert.ok(redirects.includes('/nws/alerts/*'), 'nws alerts rule');
   assert.ok(redirects.includes('/tfr/*'), 'tfr rule');
 });
-test('IDS lists all 15 airports once', () => {
+test('IDS lists all 16 airports once', () => {
   const ids = x.IDS.split(',');
-  assert.equal(ids.length, 15);
-  assert.equal(new Set(ids).size, 15);
+  assert.equal(ids.length, 16);
+  assert.equal(new Set(ids).size, 16);
   assert.ok(ids.includes('KTOL'));
 });
 

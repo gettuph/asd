@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.38</title>
+  <title>Aviation Situation Dashboard v1.39</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -443,7 +443,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.38&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.39&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -569,6 +569,7 @@
       { icao: "KCMH", name: "John Glenn Columbus Intl", city: "Columbus, OH", dist: 104, group: "region", lat: 39.9980, lon: -82.8919 },
       { icao: "KDAY", name: "James M. Cox Dayton Intl", city: "Dayton, OH", dist: 107, group: "region", lat: 39.9024, lon: -84.2194 },
       { icao: "KGRR", name: "Gerald R. Ford Intl", city: "Grand Rapids, MI", dist: 141, group: "region", lat: 42.8808, lon: -85.5228 },
+      { icao: "KIND", name: "Indianapolis Intl", city: "Indianapolis, IN", dist: 181, group: "region", lat: 39.7173, lon: -86.2946 },
       { icao: "KMIE", name: "Delaware County Regional", city: "Muncie, IN", dist: 122, group: "region", lat: 40.2423, lon: -85.3958 },
     ];
     let activeAptGroup = "local";
@@ -618,6 +619,7 @@
       KAZO: [{le:"05",he:"23",le_hdg:45,he_hdg:225,len:3438},{le:"09",he:"27",le_hdg:90,he_hdg:270,len:2800},{le:"17",he:"35",le_hdg:171,he_hdg:351,len:6502}],
       KDUH: [{le:"09",he:"27",le_hdg:87,he_hdg:267,len:4807}],
       KJXN: [{le:"07",he:"25",le_hdg:67,he_hdg:247,len:5351},{le:"14",he:"32",le_hdg:133,he_hdg:313,len:4000}],
+      KIND: [{le:"05L/R",he:"23L/R",le_hdg:45,he_hdg:225,len:11200},{le:"14",he:"32",le_hdg:135,he_hdg:315,len:7278}],
       KMIE: [{le:"03",he:"21",le_hdg:22,he_hdg:202,len:5198},{le:"14",he:"32",le_hdg:136,he_hdg:316,len:6500}],
     };
 
@@ -649,7 +651,7 @@
     // otherwise from the RUNWAYS heading table. Both paths feed runwaySketchSvg.
     const SK = { w: 440, h: 360, cx: 220, cy: 186, r: 108 };
     const FAA_RWY_URL = "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Runways/FeatureServer/0/query";
-    const RWY_GEO_KEY = "asd.rwygeo.v1";
+    const RWY_GEO_KEY = "asd.rwygeo.v2";   // v2 (v1.39): KIND added, so older caches are refetched
     const RWY_GEO_TTL = 56 * 86400000; // FAA republishes the layer every 56 days
     let runwayGeo = {};                // icao -> [{le, he, a:{x,y}, b:{x,y}, hdg, len, width}] in metres E/N of the airport point
 
@@ -2154,7 +2156,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.38";
+    const CURRENT_VERSION = "v1.39";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());

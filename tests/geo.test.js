@@ -50,7 +50,8 @@ test('AIRPORTS: unique ICAOs, plausible coordinates, valid groups, within 150 nm
     assert.ok(!seen.has(a.icao), `duplicate ${a.icao}`); seen.add(a.icao);
     assert.ok(a.lat > 38 && a.lat < 44 && a.lon > -88 && a.lon < -80, `${a.icao} coords`);
     assert.ok(['local', 'area', 'region'].includes(a.group), `${a.icao} group ${a.group}`);
-    assert.ok(haversineNm(BG_LAT, BG_LON, a.lat, a.lon) < 150, `${a.icao} too far`);
+    // KIND (158 nm) sits outside the 150 nm hazard radius by the owner's choice; nothing should be further
+    assert.ok(haversineNm(BG_LAT, BG_LON, a.lat, a.lon) < 160, `${a.icao} too far`);
   }
-  assert.equal(AIRPORTS.length, 15);
+  assert.equal(AIRPORTS.length, 16);
 });

@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.38** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.39** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -24,11 +24,12 @@ Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). Al
 
 ## 2. Airports
 
-There are 15 airports in three distance groups. Each has ICAO code, name, city, distance, latitude/longitude, and runway headings for wind components.
+There are 16 airports in three distance groups. Each has ICAO code, name, city, distance, latitude/longitude, and runway headings for wind components.
 
 - **Local (35 mi or less):** KTOL, KTDZ, KFDY, KDUH
 - **Area (36–90 mi):** KADG, KDTW, KFWA, KJXN, KMFD
-- **Region (more than 90 mi):** KAZO, KCLE, KCMH, KDAY, KGRR, KMIE
+- **Region (more than 90 mi):** KAZO, KCLE, KCMH, KDAY, KGRR, KIND, KMIE
+- KIND (181 mi, 158 nm) is outside the 150 nm hazard radius used for PIREPs, SIGMETs, and G-AIRMETs; the radius stays at 150 nm by the owner's choice.
 
 ## 3. Layout
 
@@ -67,7 +68,7 @@ Each card shows, in this order:
    - Footer: "Data: ATIS Relay" linked to https://atisrelay.com · "Digital ATIS from FAA SWIM", and a Refresh button on the right. Refresh fetches right away ("Refreshing…") but works at most once per 5 minutes after the last fetch (`ATIS_MANUAL_MS`); while locked it is dimmed and reads "Refresh available HHMMZ", and it re-enables itself when the lockout ends. The function enforces the same 5-minute window.
    - Also shown during an AWC outage (after the TAF), since it doesn't depend on AWC.
 6. **Runway winds** (collapsible): a north-up SVG sketch (`runwaySketchSvg`) of the airport's actual runway layout. It is always shown when runway data exists.
-   - **Geometry source:** the FAA ADDS "Runways" footprint layer (ArcGIS FeatureServer, public, CORS-open, no key), queried once per airport at page load by a ±0.03° envelope around the airport point (`fetchRunwayGeo`). Results are cached in `localStorage` (`asd.rwygeo.v1`) for 56 days, the FAA's publication cycle. The nearest airport's polygons are kept; helipads (`H…`) and closed/unverified (`…X`) designators are dropped (`parseFaaRunways`). The caption reads "FAA runway footprints".
+   - **Geometry source:** the FAA ADDS "Runways" footprint layer (ArcGIS FeatureServer, public, CORS-open, no key), queried once per airport at page load by a ±0.03° envelope around the airport point (`fetchRunwayGeo`). Results are cached in `localStorage` (`asd.rwygeo.v2`) for 56 days, the FAA's publication cycle. The nearest airport's polygons are kept; helipads (`H…`) and closed/unverified (`…X`) designators are dropped (`parseFaaRunways`). The caption reads "FAA runway footprints".
    - Each footprint polygon is reduced to its centerline and width (`ringAxis`, principal axis); the true heading comes from the geometry and the low-numbered end is the one whose outbound bearing matches its designator. Runways are drawn to scale in position, length, and orientation; pavement width is exaggerated to a minimum of 7 units so it reads on screen.
    - **Fallback:** if the FAA layer is unreachable and nothing is cached, the sketch uses the `RUNWAYS` heading table (lines through a common center) and the caption reads "Runway headings (FAA footprints unavailable)". Table headings are checked against the footprints in `npm test`.
    - A blue arrow points from the direction the wind blows **from** toward the center; the legend reads "Wind 060° at 7 kt" (plus "gusting N kt"). "N ↑" marks north.
@@ -170,7 +171,7 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 - The modal header shows the identifier, the station name from AWC when available, and repeats the text box and Go button so another airport can be checked without closing.
 - **Identifier handling (`normalizeIcao`):** trimmed, upper-cased, non-alphanumerics removed. A three-letter alphabetic ID gets a `K` prefix (TOL → KTOL). Anything else is sent as typed (CYYZ, EGLL, 1G0).
 - **Content:** METAR (category badge, raw text, decoded fields including density altitude — the same `metarDetailHtml` block the briefing view uses, with the observation time and age), then the TAF colored by category with its issue time. Missing data shows "No METAR found for XXXX." / "No TAF issued for XXXX."; an unreachable AWC shows "Could not reach Aviation Weather Center. Try again in a moment."
-- **Fetching:** only when Go is pressed, through the existing `/awc/metar/` and `/awc/taf/` proxies (`wxFetch`). Nothing is polled; the 15-airport refresh cycle is unaffected. A newer lookup supersedes a slower earlier one.
+- **Fetching:** only when Go is pressed, through the existing `/awc/metar/` and `/awc/taf/` proxies (`wxFetch`). Nothing is polled; the 16-airport refresh cycle is unaffected. A newer lookup supersedes a slower earlier one.
 - Closes with ×, Escape, or a click on the backdrop; closing clears both boxes so the `LocID` placeholder shows again. Pull-to-refresh is blocked inside it.
 - Text size: raw METAR/TAF `clamp(14px, 1.1vw, 22px)`, decoded fields `clamp(13px, 1vw, 19px)`.
 

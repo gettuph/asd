@@ -12,12 +12,11 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Needs a decision
 
-- Add IND to the 90+ tab.
 - Add D-ATIS for airports that have it available using the ATIS relay api.
 
 ## Fixes and cleanup
 
-- **NWS alerts in one call.** Alerts currently make one call per airport (15 calls every 15 min). A single area or zone query would be cheaper, but matching alerts to airports by zone geometry is fragile. Only worth doing if NWS rate limits become a problem.
+- **NWS alerts in one call.** Alerts currently make one call per airport (16 calls every 15 min). A single area or zone query would be cheaper, but matching alerts to airports by zone geometry is fragile. Only worth doing if NWS rate limits become a problem.
 
 ## Waiting on outside changes
 
@@ -25,7 +24,7 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Testing (next layer, not built)
 
-- **Browser tests with Playwright** against saved AWC fixtures: no console errors, 15 cards, outage banner behaviour, open `<details>` surviving re-render, briefing view with no pane overlaps at 390×844 / 820×1180 / 1180×820 / 1920×1080, no CAVU iframe before click, disclaimers present.
+- **Browser tests with Playwright** against saved AWC fixtures: no console errors, 16 cards, outage banner behaviour, open `<details>` surviving re-render, briefing view with no pane overlaps at 390×844 / 820×1180 / 1180×820 / 1920×1080, no CAVU iframe before click, disclaimers present.
 - **Production smoke check** (run on command): live `version.txt` matches served `CURRENT_VERSION`; each `_redirects` proxy returns JSON; KTOL METAR present.
 
 ## Shelved ideas

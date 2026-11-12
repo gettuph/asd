@@ -172,7 +172,7 @@ test('compactNames collapses parallels and orders by runway number', () => {
   assert.equal(compactNames(['10']), '10');
 });
 
-test('layoutLabels: no two label boxes overlap and all stay inside the drawing (all 15 airports, stiff wind)', () => {
+test('layoutLabels: no two label boxes overlap and all stay inside the drawing (all 16 airports, stiff wind)', () => {
   for (const apt of AIRPORTS) {
     const geo = parseFaaRunways(fx[apt.icao].features, apt.lat, apt.lon);
     const model = sketchModel(RUNWAYS[apt.icao] || [], geo);
