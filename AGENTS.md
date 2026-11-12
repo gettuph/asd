@@ -55,7 +55,7 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
 ## Versioning
 
 - The format is `vMAJOR.MINOR`. Each deploy increases the second number (v1.30 → v1.31). The owner decides on major versions.
-- On every release, update both `CURRENT_VERSION` in `index.html` and `version.txt` to the same value. The in-app update banner depends on it.
+- On every release, update both `CURRENT_VERSION` in `index.html` and `version.txt` to the same value. The in-app update banner depends on it. The ATIS Relay `User-Agent` in `netlify/functions/atis.js` carries the same number (a static check enforces it).
 - Small fixes made at the owner's request can keep the same version if the owner says so.
 
 ## Change workflow (required for every change)

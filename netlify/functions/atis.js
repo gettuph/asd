@@ -1,17 +1,21 @@
 // D-ATIS relay for the dashboard (Netlify Function, Lambda-compatible).
 //
 // Holds the ATIS Relay API key server-side (env ATIS_RELAY_KEY) so visitors never see or use it.
-// Only airports in ALLOWED are relayed. Responses are cached on Netlify's CDN (durable, shared by all
-// edge nodes) for CACHE_S seconds, so ATIS Relay sees at most one request per window no matter how
-// many browsers have the panel open. ATIS Relay terms (https://atisrelay.com/api_docs): key kept
+// Only airports in ALLOWED are relayed. The dashboard asks for ?icao=XXXX&b=N, where N is the current
+// 5-minute time bucket (floor(unix seconds / BUCKET_S)). Only the current bucket (±1 for clock skew) is
+// accepted, and each bucket's answer is cached on Netlify's CDN (durable, shared by all edge nodes), so
+// ATIS Relay sees about one request per airport per 5 minutes no matter how many browsers ask or how
+// often the Refresh button is pressed. Requests without b are cached for CACHE_S. ATIS Relay terms (https://atisrelay.com/api_docs): key kept
 // secret; cache <= 24 h, no archive; warnings and status fields passed through unchanged; back off on
 // 429 for at least Retry-After; descriptive User-Agent.
 'use strict';
 
 const ALLOWED = new Set(['KDTW']);
-const CACHE_S = 120;                   // ATIS Relay: refetch no more than once per 1–2 min per airport
+const BUCKET_S = 300;                  // one upstream fetch per airport per 5-minute bucket (Refresh lockout)
+const CACHE_S = 300;                   // ATIS Relay: refetch no more than once per 1–2 min per airport (we use 5)
+const BUCKET_CACHE_S = 2 * BUCKET_S;   // a bucket URL is cached past its window, so it is fetched only once
 const UPSTREAM = 'https://atisrelay.com/api/atis';
-const UA = 'ASD-BGSU/1.37 (+https://aert2800wx.netlify.app)';
+const UA = 'ASD-BGSU/1.38 (+https://aert2800wx.netlify.app)';
 const NS_KEY = /^xmlns(:|$)/;          // XML namespace noise in the SWIM records — dropped
 
 let memo = {};                         // per warm instance: icao -> { t, status, body, headers }
@@ -51,14 +55,28 @@ function reply(status, body, headers) {
 }
 
 exports.handler = async function handler(event) {
-  const icao = String((event.queryStringParameters || {}).icao || '').trim().toUpperCase();
+  const q = event.queryStringParameters || {};
+  const icao = String(q.icao || '').trim().toUpperCase();
   if (!ALLOWED.has(icao)) return reply(400, { error: 'airport_not_supported' }, cacheHeaders(3600));
+
+  // Time bucket: only the current 5-minute window is served, so cache-busting can't force extra fetches
+  let okTtl = CACHE_S;
+  if (q.b != null && q.b !== '') {
+    const b = Number(q.b), cur = Math.floor(Date.now() / 1000 / BUCKET_S);
+    if (!/^\d+$/.test(String(q.b)) || Math.abs(b - cur) > 1) {
+      return reply(400, { error: 'bad_bucket', bucket: cur }, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    }
+    okTtl = BUCKET_CACHE_S;
+  }
 
   const key = process.env.ATIS_RELAY_KEY;
   if (!key) return reply(500, { error: 'not_configured' }, cacheHeaders(60));
 
   const hit = memo[icao];
-  if (hit && Date.now() - hit.t < hit.ttl * 1000) return reply(hit.status, hit.body, cacheHeaders(Math.max(1, Math.round(hit.ttl - (Date.now() - hit.t) / 1000))));
+  if (hit && Date.now() - hit.t < hit.ttl * 1000) {
+    const left = Math.max(1, Math.round(hit.ttl - (Date.now() - hit.t) / 1000));
+    return reply(hit.status, hit.body, cacheHeaders(left));   // the CDN copy expires with this one
+  }
 
   let res;
   try {
@@ -83,9 +101,9 @@ exports.handler = async function handler(event) {
   try { data = await res.json(); } catch { return reply(502, { error: 'upstream_bad_json' }, cacheHeaders(30)); }
 
   const body = shapeResponse(icao, data);
-  memo[icao] = { t: Date.now(), ttl: CACHE_S, status: 200, body };
-  return reply(200, body, cacheHeaders(CACHE_S));
+  memo[icao] = { t: Date.now(), ttl: BUCKET_S, status: 200, body };
+  return reply(200, body, cacheHeaders(okTtl));
 };
 
 // for tests
-exports._internals = { ALLOWED, CACHE_S, UA, shapeResponse, cleanRecord, reset: () => { memo = {}; } };
+exports._internals = { ALLOWED, CACHE_S, BUCKET_S, UA, shapeResponse, cleanRecord, reset: () => { memo = {}; } };

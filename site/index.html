@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.37</title>
+  <title>Aviation Situation Dashboard v1.38</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -276,7 +276,9 @@
     .atis-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:4px; }
     .atis-head .atis-time { font-family:var(--mono); text-transform:none; letter-spacing:0; font-weight:400; }
     .atis-text { white-space:pre-wrap; margin-bottom:0; }
-    .atis-foot { font-size:11px; color:var(--text-muted); }
+    .atis-foot { font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+    .atis-refresh { font:inherit; font-size:12px; font-weight:600; color:var(--text); background:transparent; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; min-height:28px; }
+    .atis-refresh:disabled { opacity:0.6; cursor:default; font-weight:400; }
     .atis-foot a { color:inherit; }
 
 
@@ -441,7 +443,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.37&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.38&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1150,17 +1152,33 @@
     }
 
     // ========== D-ATIS (arrival / departure) via ATIS Relay ==========
-    // Fetched only while the card's D-ATIS panel is open, through the Netlify Function that holds the key
-    // and caches on the CDN for 2 min. ATIS Relay terms: show their notice next to the data, attribute
+    // Fetched only while the card's D-ATIS panel is open, through the Netlify Function that holds the key.
+    // Updates every 10 min while open; the Refresh button works at most once per 5 min. Requests carry a
+    // 5-minute time bucket (b) so the CDN answers every request in that window from one cached copy. ATIS Relay terms: show their notice next to the data, attribute
     // "Data: ATIS Relay" with a link, show "NOT FOR OPERATIONAL USE" for FAA SWIM data, never hide warnings.
     const ATIS_AIRPORTS = new Set(["KDTW"]);
     const ATIS_NOTICE = "Unofficial. Not for operational use. Confirm on frequency.";
-    const ATIS_REFRESH_MS = 120000;
+    const ATIS_REFRESH_MS = 600000;   // automatic update while the panel is open: every 10 min
+    const ATIS_MANUAL_MS = 300000;    // Refresh button: at most once per 5 min (the function enforces the same window)
+    const ATIS_BUCKET_MS = 300000;    // must match BUCKET_S in netlify/functions/atis.js
     const ATIS_KNOWN_FIELDS = new Set(["icao", "atis", "arrival", "departure", "official", "notice", "fetched_at", "source"]);
     let atisData = {};    // icao -> { data, t }
     let atisErr = {};     // icao -> message for the last failed refresh
     let _atisTried = {};  // icao -> time of the last attempt (throttle, also stops re-render/toggle loops)
     let _atisInflight = {};
+    let _atisUnlockTimer = {};
+    function atisBucket(now = Date.now()) { return Math.floor(now / ATIS_BUCKET_MS); }
+    // Refresh button state: when the next manual refresh is allowed (0 = now)
+    function atisRefreshAt(icao, now = Date.now()) {
+      const t = _atisTried[icao];
+      return t && now - t < ATIS_MANUAL_MS ? t + ATIS_MANUAL_MS : 0;
+    }
+    function atisRefreshHtml(icao) {
+      if (_atisInflight[icao]) return `<button type="button" class="atis-refresh" disabled>Refreshing…</button>`;
+      const at = atisRefreshAt(icao);
+      if (at) return `<button type="button" class="atis-refresh" disabled title="D-ATIS can be refreshed once every 5 minutes">Refresh available ${esc(fmtZulu(at))}</button>`;
+      return `<button type="button" class="atis-refresh" data-atis-refresh="${esc(icao)}">Refresh</button>`;
+    }
 
     function atisErrText(code, status) {
       const m = { rate_limited: "ATIS Relay rate limit reached", upstream_unreachable: "ATIS Relay not responding",
@@ -1218,20 +1236,24 @@
         else if (d.atis) h += atisRecordHtml("ATIS", d.atis);
         else h += `<p class="atis-msg">No D-ATIS published right now.</p>`;
       }
-      h += `<div class="atis-foot">Data: <a href="https://atisrelay.com" target="_blank" rel="noopener">ATIS Relay</a> · Digital ATIS from FAA SWIM</div>`;
+      h += `<div class="atis-foot"><span>Data: <a href="https://atisrelay.com" target="_blank" rel="noopener">ATIS Relay</a> · Digital ATIS from FAA SWIM</span>${atisRefreshHtml(icao)}</div>`;
       return h;
     }
     function atisDetailHtml(icao) {
       return `<details data-key="atis-${esc(icao)}"><summary>${atisSummary(icao)}</summary><div class="atis-wrap">${atisBodyHtml(icao)}</div></details>`;
     }
-    async function fetchAtis(icao) {
+    async function fetchAtis(icao, manual = false) {
       if (!ATIS_AIRPORTS.has(icao) || _atisInflight[icao]) return;
-      const wait = atisErr[icao] ? 60000 : ATIS_REFRESH_MS - 10000;
+      const wait = manual ? ATIS_MANUAL_MS : atisErr[icao] ? 60000 : ATIS_REFRESH_MS;
       if (_atisTried[icao] && Date.now() - _atisTried[icao] < wait) return;
       _atisTried[icao] = Date.now();
       _atisInflight[icao] = true;
+      if (manual) renderAirportsOnly();
+      // Re-enable the Refresh button when its 5-minute lockout ends
+      clearTimeout(_atisUnlockTimer[icao]);
+      _atisUnlockTimer[icao] = setTimeout(renderAirportsOnly, ATIS_MANUAL_MS + 500);
       try {
-        const r = await fetchT(`/.netlify/functions/atis?icao=${encodeURIComponent(icao)}`, 12000);
+        const r = await fetchT(`/.netlify/functions/atis?icao=${encodeURIComponent(icao)}&b=${atisBucket()}`, 12000);
         let j = null; try { j = await r.json(); } catch {}
         if (r.ok && j && !j.error) { atisData[icao] = { data: j, t: Date.now() }; delete atisErr[icao]; }
         else atisErr[icao] = atisErrText(j && j.error, r.status);
@@ -1245,10 +1267,15 @@
       const m = /^atis-([A-Z0-9]{3,4})$/.exec(d.dataset.key || "");
       if (m) fetchAtis(m[1]);
     }, true);
+    document.addEventListener("click", e => {
+      const b = e.target && e.target.closest && e.target.closest("[data-atis-refresh]");
+      if (b) { e.preventDefault(); fetchAtis(b.dataset.atisRefresh, true); }
+    });
+    // Checked every 30 s so an open panel updates 10 min after its last fetch, not up to 20
     setInterval(() => {
       if (document.hidden) return;
       for (const icao of ATIS_AIRPORTS) if (document.querySelector(`details[data-key="atis-${icao}"][open]`)) fetchAtis(icao);
-    }, ATIS_REFRESH_MS);
+    }, 30000);
 
     // ========== RENDER ==========
     function renderAirportsOnly() {
@@ -2127,7 +2154,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.37";
+    const CURRENT_VERSION = "v1.38";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());

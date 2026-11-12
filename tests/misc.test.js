@@ -174,3 +174,17 @@ test('atisIssued: DDHHMM in UTC, month rollover, fallback to timestamp', () => {
   assert.equal(ctx.atisIssued({ timestamp: 1794456692111 }, now).getTime(), 1794456692111);
   assert.equal(ctx.atisIssued({}, now), null);
 });
+
+test('D-ATIS Refresh button: enabled, then locked for 5 min after a fetch, with bucketed URL', () => {
+  x.setAtis('KDTW', require('./fixtures/atis_kdtw.json'));
+  x.setAtisTried('KDTW', 0);
+  assert.match(ctx.atisDetailHtml('KDTW'), /<button type="button" class="atis-refresh" data-atis-refresh="KDTW">Refresh<\/button>/);
+  const t = Date.UTC(2026, 10, 12, 4, 12);
+  x.setAtisTried('KDTW', Date.now() - 60000);
+  const h = ctx.atisDetailHtml('KDTW');
+  assert.match(h, /class="atis-refresh" disabled[^>]*>Refresh available \d{4}Z</);
+  assert.doesNotMatch(h, /data-atis-refresh/);
+  assert.equal(ctx.atisRefreshAt('KDTW', Date.now() + 5 * 60000), 0);
+  assert.equal(ctx.atisBucket(t), Math.floor(t / 300000));
+  x.setAtisTried('KDTW', 0); x.setAtis('KDTW', null);
+});

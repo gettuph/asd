@@ -44,6 +44,7 @@ These came out of the decisions made while building the app. When a new request 
 | Served files in `site/`, docs and tooling at the repo root | Keeps the publish directory clean; the deploy only ever uploads `site/` |
 | Runway winds as a north-up sketch of the real layout, not a table | Students see the wind against the actual runways; the numbers stay on each runway end |
 | D-ATIS through ATIS Relay, behind our own Netlify Function | The key must stay server-side, and a shared CDN cache limits upstream requests |
+| D-ATIS updates every 10 min while open; Refresh at most once per 5 min, enforced by the function | Owner chose 10 min (D-ATIS rarely changes faster); the 5-minute time bucket keeps ATIS Relay requests low even with repeated Refresh presses |
 | Personal use only while ATIS Relay data is shown | ATIS Relay's personal plan doesn't cover school displays; the owner doesn't show the site on classroom TVs or share its address/QR code until ATIS Relay gives written permission or the panels are removed |
 | Runway geometry from the FAA footprint layer, runways only | Taxiways and aprons add clutter without helping the wind picture; FAA data beats a hand-kept heading table (it caught two wrong headings and one wrong airport position) |
 | Netlify `_redirects` reverse proxy for AWC, NWS, and FAA TFR data | Third-party CORS proxies caused 30-second loads and outages |

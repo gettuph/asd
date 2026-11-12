@@ -79,6 +79,7 @@ const exportLine = `
   FD_STATIONS, FD_ALTS, _fmt12, _fmt24,
   getWeatherData: () => weatherData,
   setWeatherData: d => { weatherData = d; },
+  setAtisTried: (icao, t) => { if (t) _atisTried[icao] = t; else delete _atisTried[icao]; },
   setAtis: (icao, data, err) => { if (data) atisData[icao] = { data, t: Date.now() }; else delete atisData[icao]; if (err) atisErr[icao] = err; else delete atisErr[icao]; },
 };`;
 
