@@ -1,13 +1,13 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.39** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.40** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
 
 - One static file, `site/index.html` (HTML, CSS, and JavaScript inline). No framework and no build step. Everything served lives in `site/`; docs, tests, and the deploy script sit at the repo root.
 - Hosted on Netlify (site `aert2800wx`). The publish directory is `site/`.
-- `netlify/functions/atis.js` is a Netlify Function (Lambda-compatible) that relays D-ATIS from ATIS Relay. It holds the key (`ATIS_RELAY_KEY`, a Netlify environment variable, never in the repo), answers only for allow-listed airports (KDTW), and caches responses on Netlify's durable CDN cache. The dashboard asks for `?icao=XXXX&b=N`, where N is the current 5-minute time bucket (`BUCKET_S` = 300); the function accepts only the current bucket ±1 (anything else: 400 `bad_bucket`, not cached, no upstream call) and caches each bucket's answer for 600 s, and a warm instance reuses its last answer for 5 minutes. So ATIS Relay sees about one request per airport per 5 minutes, however many browsers are open or Refresh presses happen. Requests without `b` are cached 300 s. On `429` it waits at least `Retry-After` (minimum 60 s) and caches that refusal for the same time.
+- `netlify/functions/atis.js` is a Netlify Function (Lambda-compatible) that relays D-ATIS from ATIS Relay. It holds the key (`ATIS_RELAY_KEY`, a Netlify environment variable, never in the repo), answers only for allow-listed airports (`ALLOWED`: KDTW, KCLE, KCMH, KIND — must match `ATIS_AIRPORTS`; a static check enforces it), and caches responses on Netlify's durable CDN cache. The dashboard asks for `?icao=XXXX&b=N`, where N is the current 5-minute time bucket (`BUCKET_S` = 300); the function accepts only the current bucket ±1 (anything else: 400 `bad_bucket`, not cached, no upstream call) and caches each bucket's answer for 600 s, and a warm instance reuses its last answer for 5 minutes. So ATIS Relay sees about one request per airport per 5 minutes, however many browsers are open or Refresh presses happen. Requests without `b` are cached 300 s. On `429` it waits at least `Retry-After` (minimum 60 s) and caches that refusal for the same time.
 - The FAA ADDS runway-footprint layer (`services6.arcgis.com/ssFJjBXIUyZDrSYZ/.../Runways/FeatureServer/0`) is fetched directly; it sends `Access-Control-Allow-Origin: *`, so no proxy rule is needed. Its quota is about 6000 request units per minute per client, so it is fetched once per 56 days, not per refresh.
 - `_redirects` provides same-origin reverse proxies:
 
@@ -60,8 +60,8 @@ Each card shows, in this order:
    - Density altitude is pressure altitude plus 120 × (OAT − ISA temperature). Pressure altitude comes from the altimeter setting, and field elevation from the AWC `elev` field.
 4. **TAF** (tap to expand): each line is colored by flight category (VFR green, MVFR blue, IFR red, LIFR purple).
    - Visibility parsing must handle fractions and `M1/4SM`, and must not read times as visibility.
-5. **D-ATIS** (collapsible, KDTW only; `ATIS_AIRPORTS`): between the TAF and Runway winds. Collapsed by default; nothing is fetched until it is opened. Opening it calls `/.netlify/functions/atis?icao=KDTW&b=<5-min bucket>`; while open it updates every 10 minutes (`ATIS_REFRESH_MS`; checked every 30 s, skipped while the tab is hidden), throttled per airport (60 s after a failure) so card re-renders can't loop.
-   - Summary: "D-ATIS — Arrival I · Departure V" once loaded; "D-ATIS — arrival & departure" before.
+5. **D-ATIS** (collapsible; `ATIS_AIRPORTS`: KDTW, KCLE, KCMH, KIND — the airports in range that ATIS Relay has D-ATIS for; KDAY and KGRR have none): between the TAF and Runway winds. Collapsed by default; nothing is fetched until it is opened. Opening it calls `/.netlify/functions/atis?icao=XXXX&b=<5-min bucket>` for that airport only; while open it updates every 10 minutes (`ATIS_REFRESH_MS`; checked every 30 s, skipped while the tab is hidden), throttled per airport (60 s after a failure) so card re-renders can't loop.
+   - Summary once loaded: "D-ATIS — Arrival I · Departure V" (KDTW and KCLE publish separate arrival and departure ATIS) or "D-ATIS — Information C" (KCMH, KIND). Before loading: "D-ATIS — arrival & departure" for airports in `ATIS_SPLIT` (KDTW, KCLE), plain "D-ATIS" for the rest. Single-ATIS airports show one "ATIS — Information C" block.
    - Top line (caution colors): "⚠️ Unofficial. Not for operational use. Confirm on frequency. NOT FOR OPERATIONAL USE." — ATIS Relay's required notice, word for word, plus the FAA SWIM warning.
    - Arrival and Departure blocks: "Arrival — Information I", issue time from `DATISTime` (DDHHMM UTC) with age, and the full ATIS text as issued, unedited. An ATIS more than 65 minutes old adds "This ATIS is more than an hour old and may be out of date." Airports with a single combined ATIS show one "ATIS" block.
    - Any other message ATIS Relay returns (a different `notice`, or unknown text fields) is shown, never dropped. A failed refresh keeps the last report and says "Couldn't refresh D-ATIS (reason). Showing the report received HHMMZ."; with nothing cached it says "D-ATIS unavailable right now (reason)."
@@ -189,7 +189,7 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 | TFR check | 5 min |
 | Version check | 5 min |
 | Airport lookup | on demand only (Go / Enter) |
-| KDTW D-ATIS | only while its panel is open: on open, then every 10 min; Refresh button at most once per 5 min (function serves one cached copy per 5-min bucket) |
+| D-ATIS (KDTW, KCLE, KCMH, KIND) | per airport, only while its panel is open: on open, then every 10 min; Refresh button at most once per 5 min (function serves one cached copy per 5-min bucket) |
 | FAA runway footprints | once per page load, served from a 56-day localStorage cache |
 | NWS alerts | 15 min |
 | Winds aloft | 60 min |

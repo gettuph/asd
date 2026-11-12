@@ -61,6 +61,14 @@ test('cache: shared durable CDN cache for 5 min, never longer than 24 h', async 
   assert.ok(s > 0 && s <= 86400);
 });
 
+test('allow-list: KDTW, KCLE, KCMH, KIND are relayed', async () => {
+  for (const id of ['KDTW', 'KCLE', 'kcmh', 'KIND']) {
+    const { res, calls } = await call(id);
+    assert.equal(res.statusCode, 200, id);
+    assert.equal(calls[0].url, `https://atisrelay.com/api/atis?icao=${id.toUpperCase()}`);
+  }
+});
+
 test('only allow-listed airports: anything else is refused without calling ATIS Relay', async () => {
   for (const id of ['KORD', '1G0', '', null, 'KDTW,KORD']) {
     const { res, json, calls } = await call(id);

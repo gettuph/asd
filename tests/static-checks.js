@@ -86,6 +86,12 @@ check('D-ATIS: browser calls only our function, never atisrelay.com/api directly
 const fnSrc = fs.readFileSync(path.join(__dirname, '..', 'netlify', 'functions', 'atis.js'), 'utf8');
 check('function reads the key from process.env.ATIS_RELAY_KEY', /process\.env\.ATIS_RELAY_KEY/.test(fnSrc));
 check('function allow-lists airports', /const ALLOWED = new Set\(/.test(fnSrc));
+{
+  const ids = s => [...(s || '').matchAll(/["']([A-Z0-9]{3,4})["']/g)].map(m => m[1]).sort().join(',');
+  const client = ids((/const ATIS_AIRPORTS = new Set\(\[([^\]]*)\]/.exec(src) || [])[1]);
+  const server = ids((/const ALLOWED = new Set\(\[([^\]]*)\]/.exec(fnSrc) || [])[1]);
+  check('D-ATIS: ATIS_AIRPORTS matches the function allow-list', client && client === server, `${client} vs ${server}`);
+}
 check('D-ATIS: auto update every 10 min, Refresh at most every 5 min', /const ATIS_REFRESH_MS = 600000;/.test(src) && /const ATIS_MANUAL_MS = 300000;/.test(src));
 check('D-ATIS: client bucket matches the function BUCKET_S', /const ATIS_BUCKET_MS = (\d+)/.exec(src)?.[1] === String(1000 * Number(/const BUCKET_S = (\d+)/.exec(fnSrc)?.[1])));
 check('D-ATIS: requests carry the time bucket', /functions\/atis\?icao=\$\{encodeURIComponent\(icao\)\}&b=\$\{atisBucket\(\)\}/.test(src));

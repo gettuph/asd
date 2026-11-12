@@ -188,3 +188,17 @@ test('D-ATIS Refresh button: enabled, then locked for 5 min after a fetch, with 
   assert.equal(ctx.atisBucket(t), Math.floor(t / 300000));
   x.setAtisTried('KDTW', 0); x.setAtis('KDTW', null);
 });
+
+test('D-ATIS: KCLE labelled arrival & departure; single-ATIS airports (KCMH, KIND) get a panel, label, and Information block', () => {
+  assert.match(ctx.atisDetailHtml('KCLE'), /<summary>D-ATIS — arrival &amp; departure<\/summary>/);
+  for (const id of ['KCMH', 'KIND']) {
+    const h0 = ctx.atisDetailHtml(id);
+    assert.match(h0, new RegExp(`data-key="atis-${id}"><summary>D-ATIS</summary>`));
+    x.setAtis(id, { icao: id, atis: { letter: 'K', dataBody: `${id.slice(1)} ATIS INFO K 0451Z. 36012KT 10SM`, DATISTime: '' }, arrival: null, departure: null, official: false, notice: 'Unofficial. Not for operational use. Confirm on frequency.' });
+    const h = ctx.atisDetailHtml(id);
+    assert.match(h, /<summary>D-ATIS — Information K<\/summary>/);
+    assert.match(h, /ATIS — Information K/);
+    assert.match(h, new RegExp(`${id.slice(1)} ATIS INFO K`));
+    x.setAtis(id, null);
+  }
+});

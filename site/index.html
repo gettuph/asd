@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.39</title>
+  <title>Aviation Situation Dashboard v1.40</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -268,7 +268,7 @@
     }
     details summary:hover { color: var(--text); }
 
-    /* D-ATIS (KDTW) — arrival and departure, via the /.netlify/functions/atis relay */
+    /* D-ATIS (KDTW arrival/departure; KCLE, KCMH, KIND) via the /.netlify/functions/atis relay */
     .atis-wrap { display:grid; gap:10px; margin-top:6px; }
     .atis-notice { font-size:12px; font-weight:600; color:#1a2332; background:var(--caution-border); border-radius:6px; padding:5px 10px; line-height:1.4; }
     .atis-warn { font-size:12px; color:var(--ifr); font-weight:600; }
@@ -443,7 +443,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.39&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.40&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1158,7 +1158,8 @@
     // Updates every 10 min while open; the Refresh button works at most once per 5 min. Requests carry a
     // 5-minute time bucket (b) so the CDN answers every request in that window from one cached copy. ATIS Relay terms: show their notice next to the data, attribute
     // "Data: ATIS Relay" with a link, show "NOT FOR OPERATIONAL USE" for FAA SWIM data, never hide warnings.
-    const ATIS_AIRPORTS = new Set(["KDTW"]);
+    const ATIS_AIRPORTS = new Set(["KDTW", "KCLE", "KCMH", "KIND"]);   // must match ALLOWED in netlify/functions/atis.js
+    const ATIS_SPLIT = new Set(["KDTW", "KCLE"]);   // publishes separate arrival and departure ATIS
     const ATIS_NOTICE = "Unofficial. Not for operational use. Confirm on frequency.";
     const ATIS_REFRESH_MS = 600000;   // automatic update while the panel is open: every 10 min
     const ATIS_MANUAL_MS = 300000;    // Refresh button: at most once per 5 min (the function enforces the same window)
@@ -1221,7 +1222,7 @@
         return `D-ATIS — ${parts.join(" · ")}`;
       }
       if (d && L(d.atis)) return `D-ATIS — Information ${L(d.atis)}`;
-      return "D-ATIS — arrival &amp; departure";
+      return ATIS_SPLIT.has(icao) ? "D-ATIS — arrival &amp; departure" : "D-ATIS";
     }
     function atisBodyHtml(icao) {
       const entry = atisData[icao], err = atisErr[icao];
@@ -1349,7 +1350,7 @@
           html += `<details data-key="taf-${apt.icao}"><summary>TAF — tap to expand</summary><div class="raw-metar" style="white-space:pre-wrap">${colorTaf(t.rawTAF)}</div></details>`;
         }
 
-        // D-ATIS between the TAF and runway winds (KDTW)
+        // D-ATIS between the TAF and runway winds (ATIS_AIRPORTS)
         if (ATIS_AIRPORTS.has(apt.icao)) html += atisDetailHtml(apt.icao);
 
         // Runway wind components — sketch shown whenever runway data exists (calm/variable add a note)
@@ -2156,7 +2157,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.39";
+    const CURRENT_VERSION = "v1.40";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());
