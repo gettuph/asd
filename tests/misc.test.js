@@ -130,3 +130,47 @@ test('closeLookupModal clears both LocID boxes so the placeholder returns', () =
   try { ctx.closeLookupModal(); } finally { ctx.document.getElementById = origGet; }
   for (const id of ids) assert.equal(els[id].value, '', id);
 });
+
+// ---- D-ATIS panel (v1.37) ----
+test('D-ATIS panel: notice, NOT FOR OPERATIONAL USE, attribution link, letters, escaped text', () => {
+  const fx = require('./fixtures/atis_kdtw.json');
+  ctx.eval && 0;
+  const h0 = ctx.atisDetailHtml('KDTW');
+  assert.match(h0, /data-key="atis-KDTW"/);
+  assert.match(h0, /Unofficial\. Not for operational use\. Confirm on frequency\. NOT FOR OPERATIONAL USE\./);
+  assert.match(h0, /Data: <a href="https:\/\/atisrelay\.com"[^>]*>ATIS Relay<\/a>/);
+  assert.match(h0, /Loading D-ATIS/);
+  const ddhhmm = ms => { const d = new Date(ms); return [d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes()].map(n => String(n).padStart(2, '0')).join(''); };
+  const fresh = ddhhmm(Date.now() - 5 * 60000), stale = ddhhmm(Date.now() - 2 * 3600000);
+  x.setAtis('KDTW', { ...fx, arrival: { ...fx.arrival, DATISTime: fresh, dataBody: fx.arrival.dataBody + ' <script>' }, departure: { ...fx.departure, DATISTime: fresh } });
+  assert.doesNotMatch(ctx.atisDetailHtml('KDTW'), /more than an hour old/);
+  assert.match(ctx.atisDetailHtml('KDTW'), /5m ago/);
+  x.setAtis('KDTW', { ...fx, arrival: { ...fx.arrival, DATISTime: stale, dataBody: fx.arrival.dataBody + ' <script>' } });
+  const h1 = ctx.atisDetailHtml('KDTW');
+  assert.match(h1, new RegExp(`D-ATIS — Arrival ${fx.arrival.letter} · Departure ${fx.departure.letter}`));
+  assert.match(h1, new RegExp(`Arrival — Information ${fx.arrival.letter}`));
+  assert.match(h1, /DTW ARR INFO/);
+  assert.doesNotMatch(h1, /<script>/);
+  assert.match(h1, /more than an hour old/);             // 2 h old ATIS is flagged
+  x.setAtis('KDTW', { ...fx, warning: 'Data delayed' });
+  assert.match(ctx.atisDetailHtml('KDTW'), /Data delayed/);   // unknown messages are never dropped
+  x.setAtis('KDTW', null);
+});
+test('D-ATIS panel: failed refresh keeps the last report and says so', () => {
+  const fx = require('./fixtures/atis_kdtw.json');
+  x.setAtis('KDTW', fx, 'ATIS Relay not responding');
+  const h = ctx.atisDetailHtml('KDTW');
+  assert.match(h, /Couldn't refresh D-ATIS \(ATIS Relay not responding\)/);
+  assert.match(h, /DTW DEP INFO/);
+  x.setAtis('KDTW', null, 'ATIS Relay not responding');
+  assert.match(ctx.atisDetailHtml('KDTW'), /D-ATIS unavailable right now/);
+  x.setAtis('KDTW', null);
+});
+
+test('atisIssued: DDHHMM in UTC, month rollover, fallback to timestamp', () => {
+  const now = Date.UTC(2026, 10, 12, 4, 15);             // 12 Nov 2026 0415Z
+  assert.equal(ctx.atisIssued({ DATISTime: '120353' }, now).toISOString(), '2026-11-12T03:53:00.000Z');
+  assert.equal(ctx.atisIssued({ DATISTime: '302350' }, Date.UTC(2026, 11, 1, 0, 10)).toISOString(), '2026-11-30T23:50:00.000Z'); // 1 Dec 0010Z → 30 Nov
+  assert.equal(ctx.atisIssued({ timestamp: 1794456692111 }, now).getTime(), 1794456692111);
+  assert.equal(ctx.atisIssued({}, now), null);
+});

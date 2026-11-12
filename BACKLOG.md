@@ -35,7 +35,7 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 These were suggested in v.051. Only the Convective Outlook and CWAs were built.
 
-- D-ATIS for airports that have it available. https://atisrelay.com/api_docs
+- D-ATIS for airports that have it available. https://atisrelay.com/api_docs (KDTW arrival/departure built in v1.37; other D-ATIS airports in range, e.g. KCLE, KCMH, KDAY, KGRR, would only need adding to `ATIS_AIRPORTS` and the function allow-list — owner decides.)
 - NWS Area Forecast Discussion (CLE or ILN offices).
 - Side-by-side icing PIREPs and G-AIRMET icing.
 - Agent to call 1G0 ASOS at 55 minutes past each hour and transcribe the METAR from the ASOS. (Superseded by the ATIS Relay on-demand plan above; 1G0 has an AWOS-3PT, not an ASOS.)

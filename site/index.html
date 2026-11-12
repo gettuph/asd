@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.36</title>
+  <title>Aviation Situation Dashboard v1.37</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -268,6 +268,17 @@
     }
     details summary:hover { color: var(--text); }
 
+    /* D-ATIS (KDTW) — arrival and departure, via the /.netlify/functions/atis relay */
+    .atis-wrap { display:grid; gap:10px; margin-top:6px; }
+    .atis-notice { font-size:12px; font-weight:600; color:#1a2332; background:var(--caution-border); border-radius:6px; padding:5px 10px; line-height:1.4; }
+    .atis-warn { font-size:12px; color:var(--ifr); font-weight:600; }
+    .atis-msg { font-size:12px; color:var(--text-muted); margin:0; }
+    .atis-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:4px; }
+    .atis-head .atis-time { font-family:var(--mono); text-transform:none; letter-spacing:0; font-weight:400; }
+    .atis-text { white-space:pre-wrap; margin-bottom:0; }
+    .atis-foot { font-size:11px; color:var(--text-muted); }
+    .atis-foot a { color:inherit; }
+
 
     /* Chart images */
     .chart-img { width: 100%; border-radius: 6px; background: var(--border); }
@@ -430,7 +441,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.36&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.37&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1138,6 +1149,107 @@
       }).join('\n');
     }
 
+    // ========== D-ATIS (arrival / departure) via ATIS Relay ==========
+    // Fetched only while the card's D-ATIS panel is open, through the Netlify Function that holds the key
+    // and caches on the CDN for 2 min. ATIS Relay terms: show their notice next to the data, attribute
+    // "Data: ATIS Relay" with a link, show "NOT FOR OPERATIONAL USE" for FAA SWIM data, never hide warnings.
+    const ATIS_AIRPORTS = new Set(["KDTW"]);
+    const ATIS_NOTICE = "Unofficial. Not for operational use. Confirm on frequency.";
+    const ATIS_REFRESH_MS = 120000;
+    const ATIS_KNOWN_FIELDS = new Set(["icao", "atis", "arrival", "departure", "official", "notice", "fetched_at", "source"]);
+    let atisData = {};    // icao -> { data, t }
+    let atisErr = {};     // icao -> message for the last failed refresh
+    let _atisTried = {};  // icao -> time of the last attempt (throttle, also stops re-render/toggle loops)
+    let _atisInflight = {};
+
+    function atisErrText(code, status) {
+      const m = { rate_limited: "ATIS Relay rate limit reached", upstream_unreachable: "ATIS Relay not responding",
+        upstream_auth: "ATIS Relay key rejected", not_configured: "D-ATIS relay not configured",
+        airport_not_supported: "airport not supported", upstream_error: "ATIS Relay error", upstream_bad_json: "ATIS Relay sent an unreadable reply" };
+      return m[code] || (status ? `error ${status}` : "network error");
+    }
+    // When the ATIS was issued: DATISTime is DDHHMM (UTC). Falls back to the receipt timestamp.
+    function atisIssued(rec, now = Date.now()) {
+      const m = /^(\d{2})(\d{2})(\d{2})$/.exec(String(rec && rec.DATISTime || ""));
+      if (m) {
+        const n = new Date(now);
+        let d = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), +m[1], +m[2], +m[3]));
+        if (d.getTime() - now > 12 * 3600000) d = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() - 1, +m[1], +m[2], +m[3])); // last month
+        if (!isNaN(d)) return d;
+      }
+      const t = parseTs(rec && rec.timestamp);
+      return t && !isNaN(t) ? t : null;
+    }
+    function atisRecordHtml(label, rec) {
+      if (!rec || !(rec.dataBody || "").trim()) {
+        return `<div><div class="atis-head"><span>${esc(label)}</span></div><p class="atis-msg">No ${esc(label.toLowerCase())} ATIS available.</p></div>`;
+      }
+      const letter = rec.letter || rec.atisCode || "";
+      const d = atisIssued(rec);
+      const old = d && Date.now() - d.getTime() > 65 * 60000;
+      return `<div><div class="atis-head"><span>${esc(label)}${letter ? ` — Information ${esc(letter)}` : ""}</span><span class="atis-time">${d ? esc(fmtZulu(d.getTime())) + " · " + timeAgo(d.getTime()) : ""}</span></div>
+        ${old ? `<div class="atis-warn" style="margin-bottom:4px">This ATIS is more than an hour old and may be out of date.</div>` : ""}
+        <div class="raw-metar atis-text">${esc(rec.dataBody.trim())}</div></div>`;
+    }
+    function atisSummary(icao) {
+      const d = atisData[icao] && atisData[icao].data;
+      const L = r => r && (r.letter || r.atisCode);
+      if (d && (L(d.arrival) || L(d.departure))) {
+        const parts = [];
+        if (L(d.arrival)) parts.push(`Arrival ${L(d.arrival)}`);
+        if (L(d.departure)) parts.push(`Departure ${L(d.departure)}`);
+        return `D-ATIS — ${parts.join(" · ")}`;
+      }
+      if (d && L(d.atis)) return `D-ATIS — Information ${L(d.atis)}`;
+      return "D-ATIS — arrival &amp; departure";
+    }
+    function atisBodyHtml(icao) {
+      const entry = atisData[icao], err = atisErr[icao];
+      let h = `<div class="atis-notice">⚠️ ${esc(ATIS_NOTICE)} NOT FOR OPERATIONAL USE.</div>`;
+      if (!entry) {
+        h += err ? `<p class="atis-warn">D-ATIS unavailable right now (${esc(err)}).</p>` : `<p class="atis-msg">Loading D-ATIS…</p>`;
+      } else {
+        const d = entry.data;
+        if (err) h += `<p class="atis-warn">Couldn't refresh D-ATIS (${esc(err)}). Showing the report received ${esc(fmtZulu(entry.t))}.</p>`;
+        if (d.notice && d.notice !== ATIS_NOTICE) h += `<p class="atis-warn">${esc(d.notice)}</p>`;
+        // Any other message ATIS Relay sends is shown, never dropped
+        for (const [k, v] of Object.entries(d)) if (!ATIS_KNOWN_FIELDS.has(k) && typeof v === "string" && v.trim()) h += `<p class="atis-warn">${esc(v)}</p>`;
+        if (d.arrival || d.departure) { h += atisRecordHtml("Arrival", d.arrival); h += atisRecordHtml("Departure", d.departure); }
+        else if (d.atis) h += atisRecordHtml("ATIS", d.atis);
+        else h += `<p class="atis-msg">No D-ATIS published right now.</p>`;
+      }
+      h += `<div class="atis-foot">Data: <a href="https://atisrelay.com" target="_blank" rel="noopener">ATIS Relay</a> · Digital ATIS from FAA SWIM</div>`;
+      return h;
+    }
+    function atisDetailHtml(icao) {
+      return `<details data-key="atis-${esc(icao)}"><summary>${atisSummary(icao)}</summary><div class="atis-wrap">${atisBodyHtml(icao)}</div></details>`;
+    }
+    async function fetchAtis(icao) {
+      if (!ATIS_AIRPORTS.has(icao) || _atisInflight[icao]) return;
+      const wait = atisErr[icao] ? 60000 : ATIS_REFRESH_MS - 10000;
+      if (_atisTried[icao] && Date.now() - _atisTried[icao] < wait) return;
+      _atisTried[icao] = Date.now();
+      _atisInflight[icao] = true;
+      try {
+        const r = await fetchT(`/.netlify/functions/atis?icao=${encodeURIComponent(icao)}`, 12000);
+        let j = null; try { j = await r.json(); } catch {}
+        if (r.ok && j && !j.error) { atisData[icao] = { data: j, t: Date.now() }; delete atisErr[icao]; }
+        else atisErr[icao] = atisErrText(j && j.error, r.status);
+      } catch { atisErr[icao] = "network error"; }
+      finally { _atisInflight[icao] = false; renderAirportsOnly(); }
+    }
+    // <details> fires "toggle" (it doesn't bubble, so listen in the capture phase)
+    document.addEventListener("toggle", e => {
+      const d = e.target;
+      if (!d || !d.dataset || !d.open) return;
+      const m = /^atis-([A-Z0-9]{3,4})$/.exec(d.dataset.key || "");
+      if (m) fetchAtis(m[1]);
+    }, true);
+    setInterval(() => {
+      if (document.hidden) return;
+      for (const icao of ATIS_AIRPORTS) if (document.querySelector(`details[data-key="atis-${icao}"][open]`)) fetchAtis(icao);
+    }, ATIS_REFRESH_MS);
+
     // ========== RENDER ==========
     function renderAirportsOnly() {
       const metars = Array.isArray(weatherData.metars) ? weatherData.metars : [];
@@ -1190,6 +1302,7 @@
         if (t && t.rawTAF) {
           html += `<details data-key="taf-${apt.icao}" style="margin-top:8px"><summary>TAF — tap to expand</summary><div class="raw-metar" style="white-space:pre-wrap">${colorTaf(t.rawTAF)}</div></details>`;
         }
+        if (ATIS_AIRPORTS.has(apt.icao)) html += atisDetailHtml(apt.icao);
       } else {
         const da = fmtDA(m.temp, m.altim, m.elev);
         html += `<div class="raw-metar">${esc(m.rawOb || "—")}</div>
@@ -1206,6 +1319,9 @@
         if (t && t.rawTAF) {
           html += `<details data-key="taf-${apt.icao}"><summary>TAF — tap to expand</summary><div class="raw-metar" style="white-space:pre-wrap">${colorTaf(t.rawTAF)}</div></details>`;
         }
+
+        // D-ATIS between the TAF and runway winds (KDTW)
+        if (ATIS_AIRPORTS.has(apt.icao)) html += atisDetailHtml(apt.icao);
 
         // Runway wind components — sketch shown whenever runway data exists (calm/variable add a note)
         const rwys = RUNWAYS[apt.icao];
@@ -2011,7 +2127,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.36";
+    const CURRENT_VERSION = "v1.37";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());

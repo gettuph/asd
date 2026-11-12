@@ -78,6 +78,23 @@ check('lookup modal repeats the text box and Go button', /id="lookupModalInput"/
 check('lookup fetches only on submit (no lookupAirport call at load)', !/^\s*lookupAirport\(/m.test(src));
 check('lookup modal blocks pull-to-refresh', /#lookupModal/.test((src.match(/function ptrBlocked[\s\S]*?\n\s*\}/) || [''])[0]));
 
+// ---- 6c. D-ATIS / ATIS Relay terms (v1.37) ------------------------------------------------
+check('D-ATIS: ATIS Relay notice text present word for word', src.includes('"Unofficial. Not for operational use. Confirm on frequency."'));
+check('D-ATIS: FAA SWIM "NOT FOR OPERATIONAL USE" shown', /NOT FOR OPERATIONAL USE/.test(src.slice(src.indexOf('function atisBodyHtml'), src.indexOf('function atisDetailHtml'))));
+check('D-ATIS: "Data: ATIS Relay" attribution links to atisrelay.com', /Data: <a href="https:\/\/atisrelay\.com"/.test(src));
+check('D-ATIS: browser calls only our function, never atisrelay.com/api directly', !/atisrelay\.com\/api/.test(src));
+const fnSrc = fs.readFileSync(path.join(__dirname, '..', 'netlify', 'functions', 'atis.js'), 'utf8');
+check('function reads the key from process.env.ATIS_RELAY_KEY', /process\.env\.ATIS_RELAY_KEY/.test(fnSrc));
+check('function allow-lists airports', /const ALLOWED = new Set\(/.test(fnSrc));
+check('function cache is at most 24 h', Number((/const CACHE_S = (\d+)/.exec(fnSrc) || [0, 1e9])[1]) <= 86400);
+{
+  const b = src.slice(src.indexOf('function renderAirportCard'));
+  const taf = b.indexOf('<details data-key="taf-${apt.icao}"><summary>');   // normal-branch TAF
+  const atis = b.indexOf('atisDetailHtml(apt.icao)', taf);
+  const rwy = b.indexOf('data-key="rwy-${apt.icao}"');
+  check('D-ATIS sits between TAF and Runway winds in the card', taf > 0 && atis > taf && rwy > atis);
+}
+
 // ---- 7. Mobile Safari rules (AGENTS.md rule 9) -----------------------------------------
 const headerCss = ((html.match(/\.header\s*\{[^}]*\}/) || [''])[0]).replace(/\/\*[\s\S]*?\*\//g, '');
 check('.header does not combine position:sticky with overflow:hidden', !(/position:\s*sticky/.test(headerCss) && /overflow:\s*hidden/.test(headerCss)));
@@ -120,7 +137,7 @@ for (const f of ['favicon.svg', 'icon-32.png', 'icon-180.png', 'icon-192.png', '
 const REPO = path.join(__dirname, '..');
 const textFile = f => /\.(html|js|py|md|json|txt)$/.test(f) || f === '_redirects';
 const tracked = [];
-for (const dir of ['', 'site', 'scripts', 'tests']) {
+for (const dir of ['', 'site', 'scripts', 'tests', 'netlify/functions']) {
   const abs = path.join(REPO, dir);
   if (!fs.existsSync(abs)) continue;
   for (const f of fs.readdirSync(abs)) {

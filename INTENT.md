@@ -43,6 +43,7 @@ These came out of the decisions made while building the app. When a new request 
 | Single `index.html`, no build step | Simple to deploy and easy to review |
 | Served files in `site/`, docs and tooling at the repo root | Keeps the publish directory clean; the deploy only ever uploads `site/` |
 | Runway winds as a north-up sketch of the real layout, not a table | Students see the wind against the actual runways; the numbers stay on each runway end |
+| D-ATIS through ATIS Relay, behind our own Netlify Function | The key must stay server-side, and a shared 2-minute cache keeps a whole classroom to one upstream request; owner has ATIS Relay's approval for classroom display |
 | Runway geometry from the FAA footprint layer, runways only | Taxiways and aprons add clutter without helping the wind picture; FAA data beats a hand-kept heading table (it caught two wrong headings and one wrong airport position) |
 | Netlify `_redirects` reverse proxy for AWC, NWS, and FAA TFR data | Third-party CORS proxies caused 30-second loads and outages |
 | Weather themes and animations read only the KTOL METAR body, before `RMK` | Remarks like `TSNO` and `LTG DSNT` caused false snow and thunderstorm triggers |
