@@ -137,7 +137,8 @@ test('D-ATIS panel: notice, NOT FOR OPERATIONAL USE, attribution link, letters, 
   ctx.eval && 0;
   const h0 = ctx.atisDetailHtml('KDTW');
   assert.match(h0, /data-key="atis-KDTW"/);
-  assert.match(h0, /Unofficial\. Not for operational use\. Confirm on frequency\. NOT FOR OPERATIONAL USE\./);
+  assert.match(h0, /<div class="atis-notice">⚠️ Unofficial\. Not for operational use\. Confirm on frequency\.<\/div>/);   // ATIS Relay notice alone in the bar
+  assert.match(h0, /Digital ATIS from FAA SWIM — <strong>NOT FOR OPERATIONAL USE<\/strong>/);                         // FAA SWIM warning in the footer
   assert.match(h0, /Data: <a href="https:\/\/atisrelay\.com"[^>]*>ATIS Relay<\/a>/);
   assert.match(h0, /Loading D-ATIS/);
   const ddhhmm = ms => { const d = new Date(ms); return [d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes()].map(n => String(n).padStart(2, '0')).join(''); };

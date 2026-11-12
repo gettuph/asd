@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.40** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.41** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -62,10 +62,10 @@ Each card shows, in this order:
    - Visibility parsing must handle fractions and `M1/4SM`, and must not read times as visibility.
 5. **D-ATIS** (collapsible; `ATIS_AIRPORTS`: KDTW, KCLE, KCMH, KIND — the airports in range that ATIS Relay has D-ATIS for; KDAY and KGRR have none): between the TAF and Runway winds. Collapsed by default; nothing is fetched until it is opened. Opening it calls `/.netlify/functions/atis?icao=XXXX&b=<5-min bucket>` for that airport only; while open it updates every 10 minutes (`ATIS_REFRESH_MS`; checked every 30 s, skipped while the tab is hidden), throttled per airport (60 s after a failure) so card re-renders can't loop.
    - Summary once loaded: "D-ATIS — Arrival I · Departure V" (KDTW and KCLE publish separate arrival and departure ATIS) or "D-ATIS — Information C" (KCMH, KIND). Before loading: "D-ATIS — arrival & departure" for airports in `ATIS_SPLIT` (KDTW, KCLE), plain "D-ATIS" for the rest. Single-ATIS airports show one "ATIS — Information C" block.
-   - Top line (caution colors): "⚠️ Unofficial. Not for operational use. Confirm on frequency. NOT FOR OPERATIONAL USE." — ATIS Relay's required notice, word for word, plus the FAA SWIM warning.
+   - Top line (caution colors): "⚠️ Unofficial. Not for operational use. Confirm on frequency." — ATIS Relay's required notice, word for word, on its own.
    - Arrival and Departure blocks: "Arrival — Information I", issue time from `DATISTime` (DDHHMM UTC) with age, and the full ATIS text as issued, unedited. An ATIS more than 65 minutes old adds "This ATIS is more than an hour old and may be out of date." Airports with a single combined ATIS show one "ATIS" block.
    - Any other message ATIS Relay returns (a different `notice`, or unknown text fields) is shown, never dropped. A failed refresh keeps the last report and says "Couldn't refresh D-ATIS (reason). Showing the report received HHMMZ."; with nothing cached it says "D-ATIS unavailable right now (reason)."
-   - Footer: "Data: ATIS Relay" linked to https://atisrelay.com · "Digital ATIS from FAA SWIM", and a Refresh button on the right. Refresh fetches right away ("Refreshing…") but works at most once per 5 minutes after the last fetch (`ATIS_MANUAL_MS`); while locked it is dimmed and reads "Refresh available HHMMZ", and it re-enables itself when the lockout ends. The function enforces the same 5-minute window.
+   - Footer: "Data: ATIS Relay" linked to https://atisrelay.com · "Digital ATIS from FAA SWIM — **NOT FOR OPERATIONAL USE**" (the FAA SWIM warning the API terms require, in bold, next to the source), and a Refresh button on the right. Refresh fetches right away ("Refreshing…") but works at most once per 5 minutes after the last fetch (`ATIS_MANUAL_MS`); while locked it is dimmed and reads "Refresh available HHMMZ", and it re-enables itself when the lockout ends. The function enforces the same 5-minute window.
    - Also shown during an AWC outage (after the TAF), since it doesn't depend on AWC.
 6. **Runway winds** (collapsible): a north-up SVG sketch (`runwaySketchSvg`) of the airport's actual runway layout. It is always shown when runway data exists.
    - **Geometry source:** the FAA ADDS "Runways" footprint layer (ArcGIS FeatureServer, public, CORS-open, no key), queried once per airport at page load by a ±0.03° envelope around the airport point (`fetchRunwayGeo`). Results are cached in `localStorage` (`asd.rwygeo.v2`) for 56 days, the FAA's publication cycle. The nearest airport's polygons are kept; helipads (`H…`) and closed/unverified (`…X`) designators are dropped (`parseFaaRunways`). The caption reads "FAA runway footprints".

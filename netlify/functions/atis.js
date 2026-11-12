@@ -15,7 +15,7 @@ const BUCKET_S = 300;                  // one upstream fetch per airport per 5-m
 const CACHE_S = 300;                   // ATIS Relay: refetch no more than once per 1–2 min per airport (we use 5)
 const BUCKET_CACHE_S = 2 * BUCKET_S;   // a bucket URL is cached past its window, so it is fetched only once
 const UPSTREAM = 'https://atisrelay.com/api/atis';
-const UA = 'ASD-BGSU/1.40 (+https://aert2800wx.netlify.app)';
+const UA = 'ASD-BGSU/1.41 (+https://aert2800wx.netlify.app)';
 const NS_KEY = /^xmlns(:|$)/;          // XML namespace noise in the SWIM records — dropped
 
 let memo = {};                         // per warm instance: icao -> { t, status, body, headers }
