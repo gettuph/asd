@@ -116,7 +116,7 @@ for (const p of ['/awc/metar/', '/awc/taf/', '/awc/pirep/', '/awc/airsigmet/', '
 for (const icon of manifest.icons || []) check(`manifest icon exists: ${icon.src}`, fs.existsSync(path.join(ROOT, icon.src)));
 for (const f of ['favicon.svg', 'icon-32.png', 'icon-180.png', 'icon-192.png', 'icon-512.png']) check(`file present: ${f}`, fs.existsSync(path.join(ROOT, f)));
 
-// ---- 12. no secrets (AGENTS.md rule 13) --------------------------------------------------
+// ---- 12. no secrets (AGENTS.md rule 14) --------------------------------------------------
 const REPO = path.join(__dirname, '..');
 const textFile = f => /\.(html|js|py|md|json|txt)$/.test(f) || f === '_redirects';
 const tracked = [];
