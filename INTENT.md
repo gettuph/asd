@@ -53,6 +53,7 @@ These came out of the decisions made while building the app. When a new request 
 | TFR alerts cover active or scheduled TFRs within 75 nm of 1G0 | Owner's choice. Each TFR has its own modal, with no combined map |
 | Winds aloft use only FWA, CLE, and CMH, at 9,000 ft and below | These are the closest FD stations. TOL, DET, and DTW are not in the FD product |
 | ADS-B map loads automatically (no click-to-load) | Owner's choice. Slow loads are an airplanes.live issue |
+| Desktop ADS-B map at 3/4 width | The map captures the mouse wheel; at full width there was nowhere left to scroll to the bottom of the page (owner, v1.43) |
 | No service worker | Live data matters more than offline use. A version banner handles updates |
 
 ## Backlog

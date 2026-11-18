@@ -110,6 +110,8 @@ check('function cache is at most 24 h', Number((/const CACHE_S = (\d+)/.exec(fnS
   check('D-ATIS sits between TAF and Runway winds in the card', taf > 0 && atis > taf && rwy > atis);
 }
 
+check('desktop: ADS-B panel is 3/4 width (page stays scrollable beside the map)', /@media \(min-width: 1024px\)[\s\S]*?#panel-adsb \{ width: 75%; \}/.test(html));
+
 // ---- 7. Mobile Safari rules (AGENTS.md rule 9) -----------------------------------------
 const headerCss = ((html.match(/\.header\s*\{[^}]*\}/) || [''])[0]).replace(/\/\*[\s\S]*?\*\//g, '');
 check('.header does not combine position:sticky with overflow:hidden', !(/position:\s*sticky/.test(headerCss) && /overflow:\s*hidden/.test(headerCss)));
