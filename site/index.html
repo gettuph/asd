@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.43</title>
+  <title>Aviation Situation Dashboard v1.44</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -181,8 +181,8 @@
       .tab-content { display: block !important; }
       .main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
       .bottom-panels { grid-column: 1 / -1; }
-      /* ADS-B at 3/4 width so the strip beside the map can still scroll the page (the map captures the wheel) */
-      #panel-adsb { width: 75%; }
+      /* ADS-B at 3/4 width, centered, so the strips beside the map can still scroll the page (the map captures the wheel) */
+      #panel-adsb { width: 75%; margin: 0 auto; }
     }
 
     .section-title {
@@ -445,7 +445,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.43&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.44&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -2140,7 +2140,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.43";
+    const CURRENT_VERSION = "v1.44";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());

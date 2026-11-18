@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.43** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.44** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -37,7 +37,7 @@ There are 16 airports in three distance groups. Each has ICAO code, name, city, 
   - Clock colons blink once a second instead of showing running seconds, so the layout doesn't shift.
   - 24-hour time uses `hourCycle: 'h23'`, so midnight shows 00:xx.
   - Controls, left to right: airport lookup box + Go (dimmed; collapses to a dimmed magnifier icon below 700 px), briefing view (dimmed), fullscreen (dimmed, hidden if the browser doesn't support it), light/dark toggle, and refresh.
-- **Tabs, in order:** Airports, Charts, Region, ADS-B. On desktop, Airports, Charts, and Region show as three equal columns, with ADS-B below them at 3/4 width, left-aligned, so the strip to its right can still scroll the page (the map captures the mouse wheel).
+- **Tabs, in order:** Airports, Charts, Region, ADS-B. On desktop, Airports, Charts, and Region show as three equal columns, with ADS-B below them at 3/4 width, centered, so the strips on either side can still scroll the page (the map captures the mouse wheel).
 - **Banners, at the top as needed:** new version available, METAR outage, stale data, and TFR.
 
 ## 4. Airport cards
