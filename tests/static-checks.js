@@ -139,10 +139,13 @@ for (const p of ['metar', 'taf', 'pirep', 'airsigmet', 'gairmet']) {
   const re = new RegExp(`^/awc/${p}/\\*\\s+https://aviationweather\\.gov/api/data/${p}\\?:splat\\s+200`, 'm');
   check(`_redirects: /awc/${p}/* keeps the "?" before :splat`, re.test(redirects));
 }
-check('_redirects: windtemp rule', /^\/awc\/windtemp\/\s+https:\/\/aviationweather\.gov\/api\/data\/windtemp\s+200/m.test(redirects));
+check('_redirects: no windtemp rule (AWC FD tables discontinued; winds aloft from Open-Meteo)', !/windtemp/.test(redirects) && !/windtemp/.test(src));
+check('load: Leaflet is not in <head> (loaded on demand for TFR maps)', !/<(link|script)[^>]*leaflet/i.test(html.slice(0, html.indexOf('</head>'))) && /function loadLeaflet/.test(src));
+check('load: charts and SUA start at init, not after the weather fetch', /\/\/ ========== INIT ==========\s*fetchData\(\);\s*initCharts\(\);[^\n]*\n\s*fetchSUA\(\);/.test(src));
+check('load: weather products render as each arrives (renderSoon in fetch cycle)', /const take = \(url, apply\) => wxFetch\(url\)\.then\([^\n]*renderSoon\(\)/.test(src));
 check('_redirects: NWS alerts rule', /^\/nws\/alerts\/\*\s+https:\/\/api\.weather\.gov\/alerts\/:splat\s+200/m.test(redirects));
 check('_redirects: TFR rule', /^\/tfr\/\*\s+https:\/\/tfr\.faa\.gov\/:splat\s+200/m.test(redirects));
-for (const p of ['/awc/metar/', '/awc/taf/', '/awc/pirep/', '/awc/airsigmet/', '/awc/gairmet/', '/awc/windtemp/', '/nws/alerts/', '/tfr/']) {
+for (const p of ['/awc/metar/', '/awc/taf/', '/awc/pirep/', '/awc/airsigmet/', '/awc/gairmet/', '/nws/alerts/', '/tfr/']) {
   check(`JS uses proxy path ${p}`, src.includes(`"${p}`) || src.includes(`'${p}`) || src.includes('`' + p) || src.includes(`(\`${p}`) || src.includes(p));
 }
 

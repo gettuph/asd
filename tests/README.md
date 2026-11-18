@@ -25,7 +25,8 @@ Requires Node 20+. No dependencies to install.
 - every top-level `addEventListener` target appears in the HTML before the `<script>` (elements after it are `null` at load);
 - D-ATIS: ATIS Relay notice word for word, NOT FOR OPERATIONAL USE, "Data: ATIS Relay" link, browser never calls atisrelay.com directly, function reads the key from the environment, allow-list, cache ≤24 h, 10-min auto update and 5-min Refresh lockout, client bucket matches the function's, requests carry the bucket, function User-Agent version matches version.txt, panel sits between TAF and Runway winds;
 - airport lookup: modal exists with the disclaimer, repeats the text box and Go, fetches only on submit, blocks pull-to-refresh;
-- `_redirects` keeps the `?` before `:splat` on AWC rules and covers every proxy path the JS uses;
+- `_redirects` keeps the `?` before `:splat` on AWC rules and covers every proxy path the JS uses; no windtemp rule or code (FD tables discontinued);
+- load order: Leaflet not in `<head>` (loaded on demand), charts and SUA start at init, each weather product renders as it arrives;
 - manifest icons exist; no tokens committed anywhere in the repo (root, `site/`, `scripts/`, `tests/`); no `console.log`.
 
 **Unit tests** load the real inline script into a Node VM with a fake DOM (`harness.js`) and exercise the pure functions:
@@ -35,7 +36,7 @@ Requires Node 20+. No dependencies to install.
 - `geo.test.js` — haversine, point-in-polygon, distance to polygon edge, `AIRPORTS` table.
 - `header-weather.test.js` — rain/snow/lightning detection from the METAR body only.
 - `function-atis.test.js` — the D-ATIS Netlify Function with a fake `fetch` (no network): key only in the header and never in the response, User-Agent, allow-list, missing key, field pass-through, ≤24 h CDN cache, 429 back-off, warm-instance reuse, time bucket (current ±1 served and cached 600 s; others refused with no upstream call), server-side Refresh lockout. Fixture: `fixtures/atis_kdtw.json`.
-- `misc.test.js` — D-ATIS panel (notice, attribution, letters, escaping, stale and failed-refresh messages, `atisIssued`, Refresh button lockout), winds-aloft decoder, midnight clock, DST abbreviation, NWS alert table, proxy map, top-level entry points, `normalizeIcao`, `metarDetailHtml`.
+- `misc.test.js` — D-ATIS panel (notice, attribution, letters, escaping, stale and failed-refresh messages, `atisIssued`, Refresh button lockout), winds aloft (`interpWindsAloft` height/vector interpolation, below-ground levels, L&V; `parseWindsAloft` on a saved Open-Meteo reply, `fixtures/openmeteo_winds.json`; `windsAloftUrl`), midnight clock, DST abbreviation, NWS alert table, proxy map, top-level entry points, `normalizeIcao`, `metarDetailHtml`.
 
 ## Adding a test
 

@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.44** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.45** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -13,13 +13,13 @@ Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). Al
 
 | Path | Upstream |
 |---|---|
-| `/awc/{metar,taf,pirep,airsigmet,gairmet,windtemp}/` | `https://aviationweather.gov/api/data/...` |
+| `/awc/{metar,taf,pirep,airsigmet,gairmet}/` | `https://aviationweather.gov/api/data/...` |
 | `/nws/*` | `https://api.weather.gov/*` |
 | `/tfr/*` | `https://tfr.faa.gov/*` |
 
 - Fetch order for AWC data: Netlify proxy first, then fallback to codetabs and allorigins. Each try has its own timeout (proxy timeout is 10 s).
-- External libraries: Leaflet 1.9.4 (TFR map, OpenStreetMap tiles). Fonts: General Sans, JetBrains Mono.
-- Other sources: Open-Meteo (BG high/low), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and a link to the CAVU pre-duty brief.
+- External libraries: Leaflet 1.9.4 (TFR map, OpenStreetMap tiles), loaded only when a TFR map is first opened (`loadLeaflet`; a failed load shows "Map unavailable…" and retries next time). Fonts: General Sans, JetBrains Mono.
+- Other sources: Open-Meteo (BG high/low, and model winds aloft), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and a link to the CAVU pre-duty brief.
 - PWA-lite: `manifest.json` and icons for Add to Home Screen. There is no service worker.
 
 ## 2. Airports
@@ -98,7 +98,7 @@ Shown in this order:
 1. **Special Use Airspace:** MOAs and restricted areas within 150 nm, from ArcGIS. Includes R-5502A/B and the Stinger MOA.
    - Collapsed by default. The header reads "Special Use Airspace" plus "⚠️ Always check NOTAMs" and a toggle that switches between "Click to view ▼" and "Click to close ◄".
    - Entries show name, type, altitudes, and published schedule, with no activity guess.
-2. **Winds Aloft (9,000 ft and below):** FWA, CLE, and CMH at 3,000, 6,000, and 9,000 ft, decoded to direction, speed, and temperature.
+2. **Winds Aloft (9,000 ft and below):** FWA, CLE, and CMH at 3,000, 6,000, and 9,000 ft MSL: direction (nearest 10°), speed (kt), and temperature (°C); under 5 kt shows L&V. Since v1.45 the data is Open-Meteo model output (AWC's FD winds/temps tables were discontinued with the NAM retirement, NWS SCN 26-47, 3 Nov 2026): one request for all three stations, pressure levels 1000–700 hPa with geopotential heights, interpolated by height (winds as u/v components; levels below the station skipped; an altitude outside the levels shows —), using the forecast hour nearest now. Header: "Model · valid HHMMZ · fetched Nm ago". Footer: "Model winds/temps interpolated from Open-Meteo pressure levels · not an official winds aloft forecast" (Open-Meteo linked, as its licence requires). The stale banner flags it 2 h after its valid hour.
    - The header shows the valid and "for use" times.
    - The product is stale only after the end of its "for use" window.
    - Strip the "TEMPS NEG ABV 24000" line.
@@ -191,13 +191,14 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 | D-ATIS (KDTW, KCLE, KCMH, KIND) | per airport, only while its panel is open: on open, then every 10 min; Refresh button at most once per 5 min (function serves one cached copy per 5-min bucket) |
 | FAA runway footprints | once per page load, served from a 56-day localStorage cache |
 | NWS alerts | 15 min |
-| Winds aloft | 60 min |
+| Winds aloft (Open-Meteo) | 60 min |
 | BG high/low (Open-Meteo) | 60 min |
 | Stale data check | 1 min |
 | Clocks | 1 s |
 
 - **Pull-to-refresh** (touch): pulling 75 px or more reloads the page. Short pulls, `touchcancel`, and drags inside modals, maps, iframes, or scrolled areas reset without reloading.
 - **Refresh button:** triggers a data refresh.
+- **Load order (v1.45):** the five AWC requests start together and each product is shown as soon as it arrives (`renderSoon` coalesces renders), so airport cards appear when the METARs land instead of waiting for the slowest product; the status line and outage logic run once all five settle. Charts (radar, prog, SPC images) and Special Use Airspace start at page load, not after the weather data.
 
 ## 12. Display rules
 

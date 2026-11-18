@@ -4,17 +4,49 @@ const assert = require('node:assert/strict');
 const { ctx, x, html } = require('./harness');
 const plain = o => JSON.parse(JSON.stringify(o)); // VM-realm objects → plain objects for deepEqual
 
-// ---- winds aloft decoder -------------------------------------------------------------
-test('decodeFdEntry: normal, light & variable, high-speed encoding, temps', () => {
-  const { decodeFdEntry } = ctx;
-  assert.deepEqual(plain(decodeFdEntry('2715')), { dir: 270, spd: 15, tmp: null });
-  assert.deepEqual(plain(decodeFdEntry('2715-04')), { dir: 270, spd: 15, tmp: -4 });
-  assert.deepEqual(plain(decodeFdEntry('2715+12')), { dir: 270, spd: 15, tmp: 12 });
-  assert.deepEqual(plain(decodeFdEntry('9900')), { dir: 'L&V', spd: 0, tmp: null });
-  // 7730 → dir 27, spd 130 (dd > 36 means add 100 kt and subtract 50 from dd)
-  assert.deepEqual(plain(decodeFdEntry('7730-45')), { dir: 270, spd: 130, tmp: -45 });
-  assert.equal(decodeFdEntry(''), null);
-  assert.equal(decodeFdEntry('abcd'), null);
+// ---- winds aloft (Open-Meteo, v1.45) -------------------------------------------------
+test('interpWindsAloft: interpolates u/v and temperature by height, skips levels below ground', () => {
+  const { interpWindsAloft } = ctx;
+  const ft = f => f * 0.3048;
+  // 900 hPa at 2,000 ft: 270°/20 kt +10 °C; 800 hPa at 7,000 ft: 270°/40 kt 0 °C; 700 hPa at 10,000 ft: 360°/40 kt -6 °C
+  const hr = { geopotential_height_900hPa: [ft(2000)], wind_direction_900hPa: [270], wind_speed_900hPa: [20], temperature_900hPa: [10],
+               geopotential_height_800hPa: [ft(7000)], wind_direction_800hPa: [270], wind_speed_800hPa: [40], temperature_800hPa: [0],
+               geopotential_height_700hPa: [ft(10000)], wind_direction_700hPa: [360], wind_speed_700hPa: [40], temperature_700hPa: [-6],
+               geopotential_height_1000hPa: [100], wind_direction_1000hPa: [90], wind_speed_1000hPa: [99], temperature_1000hPa: [20] };
+  const rows = plain(interpWindsAloft(hr, 0, 200));               // station at 200 m: the 1000 hPa level (100 m) is underground
+  assert.deepEqual(rows[0], { alt: 3000, dir: 270, spd: 24, tmp: 8 });   // 1/5 of the way from 2,000 to 7,000 ft
+  assert.deepEqual(rows[1], { alt: 6000, dir: 270, spd: 36, tmp: 2 });
+  assert.equal(rows[2].dir, 330);                                  // 2/3 of the way from 270° to 360°, interpolated as vectors
+  assert.equal(rows[2].tmp, -4);
+  // altitude below the lowest usable level → no value
+  assert.deepEqual(plain(interpWindsAloft({ ...hr, geopotential_height_900hPa: [ft(3500)] }, 0, 200))[0], { alt: 3000 });
+  // light winds → L&V
+  const calm = { geopotential_height_900hPa: [ft(2000)], wind_direction_900hPa: [10], wind_speed_900hPa: [2], temperature_900hPa: [5],
+                 geopotential_height_800hPa: [ft(7000)], wind_direction_800hPa: [200], wind_speed_800hPa: [3], temperature_800hPa: [0] };
+  assert.equal(plain(interpWindsAloft(calm, 0, 0))[0].dir, 'L&V');
+});
+test('parseWindsAloft: real Open-Meteo reply gives FWA, CLE, CMH at 3/6/9k ft and picks the hour nearest now', () => {
+  const fx = require('./fixtures/openmeteo_winds.json');
+  const t1 = fx[0].hourly.time[1] * 1000;
+  const r = plain(ctx.parseWindsAloft(fx, t1 + 10 * 60000));
+  assert.deepEqual(Object.keys(r.stations), ['FWA', 'CLE', 'CMH']);
+  assert.equal(r.validTime, t1);
+  assert.equal(r.validEpoch, t1 + 2 * 3600000);
+  for (const rows of Object.values(r.stations)) {
+    assert.deepEqual(rows.map(c => c.alt), [3000, 6000, 9000]);
+    for (const c of rows) {
+      assert.ok(c.dir === 'L&V' || (c.dir >= 10 && c.dir <= 360 && c.dir % 10 === 0), JSON.stringify(c));
+      assert.ok(c.spd >= 0 && c.spd < 200 && Number.isInteger(c.spd));
+      assert.ok(Number.isInteger(c.tmp));
+    }
+  }
+  assert.deepEqual(plain(ctx.parseWindsAloft([], t1)).stations, {});
+});
+test('windsAloftUrl: one request for all three stations, knots, unix time', () => {
+  const u = ctx.windsAloftUrl();
+  assert.match(u, /^https:\/\/api\.open-meteo\.com\/v1\/forecast\?latitude=40\.9785,41\.4117,39\.998&longitude=/);
+  assert.match(u, /wind_speed_unit=kn/);
+  assert.match(u, /geopotential_height_700hPa/);
 });
 
 // ---- clocks --------------------------------------------------------------------------
@@ -66,7 +98,7 @@ test('every AWC proxy path used in JS has a _redirects rule', () => {
   for (const p of Object.values(x.AWC_PROXY_MAP)) {
     assert.ok(redirects.includes(`${p}*`), `no _redirects rule for ${p}*`);
   }
-  assert.ok(redirects.includes('/awc/windtemp/'), 'windtemp rule');
+  assert.ok(!redirects.includes('/awc/windtemp/'), 'windtemp rule removed (FD tables discontinued)');
   assert.ok(redirects.includes('/nws/alerts/*'), 'nws alerts rule');
   assert.ok(redirects.includes('/tfr/*'), 'tfr rule');
 });

@@ -76,7 +76,7 @@ sandbox.self = sandbox;
 const exportLine = `
 ;globalThis.__x = {
   RUNWAYS, ALERT_TYPES, AIRPORTS, IDS, AWC_PROXY_MAP, SKY_LABELS, BG_LAT, BG_LON, SK,
-  FD_STATIONS, FD_ALTS, _fmt12, _fmt24,
+  WA_STATIONS, WA_ALTS, _fmt12, _fmt24,
   getWeatherData: () => weatherData,
   setWeatherData: d => { weatherData = d; },
   setAtisTried: (icao, t) => { if (t) _atisTried[icao] = t; else delete _atisTried[icao]; },

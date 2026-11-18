@@ -19,15 +19,13 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.44</title>
+  <title>Aviation Situation Dashboard v1.45</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
   <link rel="manifest" href="manifest.json">
   <!-- Leaflet — used for TFR map modal -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <meta name="theme-color" content="#1a6fa5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -445,7 +443,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.44&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.45&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1497,13 +1495,13 @@
         html += `</div></details></div>`;
       }
 
-      // Winds Aloft (FWA, CLE, CMH — at/below 9000ft)
+      // Winds Aloft (FWA, CLE, CMH — at/below 9000ft; Open-Meteo model since v1.45)
       const wa = weatherData.windsAloft;
       if (wa && wa.stations && Object.keys(wa.stations).length > 0) {
         const ageMin = wa.fetchedAt ? Math.floor((Date.now() - wa.fetchedAt) / 60000) : null;
         const isStale = ageMin !== null && ageMin > 120; // stale if > 2 hours since fetch
         const staleColor = isStale ? "var(--ifr)" : "var(--text-faint)";
-        const validLabel = wa.validStr.replace("VALID ","").replace(" FOR USE"," · for use").replace(/\.\s*TEMPS NEG ABV \d+/i, "");
+        const validLabel = wa.validTime ? `Model · valid ${fmtZulu(wa.validTime)}` : "Model";
         html += `<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <strong style="font-size:14px">💨 Winds Aloft (≤ 9,000 ft)</strong>
           <span style="font-size:10px;color:${staleColor}">${esc(validLabel)}${ageMin !== null ? ` · fetched ${ageMin}m ago` : ""}</span>
@@ -1511,16 +1509,15 @@
         html += `<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)">`;
         html += `<thead><tr style="color:var(--text-muted);font-size:11px">`;
         html += `<th style="text-align:left;padding:4px 6px">Station</th>`;
-        for (const alt of FD_ALTS) {
+        for (const alt of WA_ALTS) {
           html += `<th style="text-align:center;padding:4px 6px">${alt.toLocaleString()}ft</th>`;
         }
         html += `</tr></thead><tbody>`;
-        for (const sid of FD_STATIONS) {
-          const rows = wa.stations[sid];
+        for (const st of WA_STATIONS) {
+          const rows = wa.stations[st.id];
           if (!rows) continue;
-          const locNames = {FWA:"Fort Wayne",CLE:"Cleveland",CMH:"Columbus"};
           html += `<tr style="border-top:1px solid var(--border)">`;
-          html += `<td style="padding:6px 6px;font-weight:600">${esc(sid)}<br><span style="font-size:10px;font-weight:400;color:var(--text-muted)">${esc(locNames[sid]||"")} </span></td>`;
+          html += `<td style="padding:6px 6px;font-weight:600">${esc(st.id)}<br><span style="font-size:10px;font-weight:400;color:var(--text-muted)">${esc(st.name)} </span></td>`;
           for (const col of rows) {
             if (!col || col.dir === undefined) {
               html += `<td style="text-align:center;padding:6px">—</td>`;
@@ -1533,7 +1530,9 @@
           }
           html += `</tr>`;
         }
-        html += `</tbody></table></div></div>`;
+        html += `</tbody></table>`;
+        html += `<div style="font-size:11px;color:var(--text-muted);margin-top:6px">Model winds/temps interpolated from <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" style="color:inherit">Open-Meteo</a> pressure levels · not an official winds aloft forecast</div>`;
+        html += `</div></div>`;
       }
 
       // SIGMETs within 150nm of 1G0
@@ -1648,6 +1647,13 @@
     }
 
     let _fetchInFlight = null;
+    // Coalesce the several renders a fetch cycle can trigger into one per tick
+    let _renderQueued = false;
+    function renderSoon() {
+      if (_renderQueued) return;
+      _renderQueued = true;
+      setTimeout(() => { _renderQueued = false; render(); }, 0);
+    }
     function fetchData() {
       if (_fetchInFlight) return _fetchInFlight;           // coalesce overlapping calls
       _fetchInFlight = _fetchDataInner().finally(() => { _fetchInFlight = null; });
@@ -1657,24 +1663,26 @@
       if (document.hidden && weatherData.lastFetch) return; // resume on visibilitychange
       document.getElementById("refreshBtn").querySelector("svg").style.animation = "spin 0.6s linear infinite";
       try {
-        const [metarRes, tafRes, pirepRes, sigRes, gairRes] = await Promise.allSettled([
-          wxFetch(`${AWC}/metar?ids=${IDS}&format=json`),
-          wxFetch(`${AWC}/taf?ids=${IDS}&format=json`),
-          wxFetch(`${AWC}/pirep?format=json&bbox=38,-87,43,-80&hours=3`),
-          wxFetch(`${AWC}/airsigmet?format=json`),
-          wxFetch(`${AWC}/gairmet?format=json`),
+        // Each product is shown as soon as it arrives (v1.45), so a slow PIREP or TAF request no
+        // longer holds back the airport cards. Last-known-good data is kept for any product whose
+        // fetch fails; the outage/status logic below runs once all five have settled.
+        const take = (url, apply) => wxFetch(url).then(v => { const l = asList(v); if (l) { apply(l); renderSoon(); } return l; });
+        const [metarRes, tafRes] = await Promise.allSettled([
+          take(`${AWC}/metar?ids=${IDS}&format=json`, l => {
+            if (!l.length) return;
+            weatherData.metars = l; weatherData.metarOutage = false; weatherData.lastFetch = Date.now();
+            document.getElementById("outageBanner").style.display = "none";
+          }),
+          take(`${AWC}/taf?ids=${IDS}&format=json`, l => { weatherData.tafs = l; }),
+          take(`${AWC}/pirep?format=json&bbox=38,-87,43,-80&hours=3`, l => { weatherData.pireps = l; }),
+          take(`${AWC}/airsigmet?format=json`, l => { weatherData.sigmets = l; }),
+          take(`${AWC}/gairmet?format=json`, l => { weatherData.gairmets = l; }),
         ]);
-        const val = r => (r.status === "fulfilled" ? asList(r.value) : null);
+        const val = r => (r.status === "fulfilled" ? r.value : null);
         const newMetars = val(metarRes);
         // Outage = fetch failed, returned non-JSON/non-array, or 0 METARs for every airport
         const metarOutage = !newMetars || newMetars.length === 0;
-        // Keep last-known-good data for every product when its fetch fails
-        if (!metarOutage) weatherData.metars = newMetars;
-        const tafs = val(tafRes), pireps = val(pirepRes), sigmets = val(sigRes), gairmets = val(gairRes);
-        if (tafs)     weatherData.tafs     = tafs;
-        if (pireps)   weatherData.pireps   = pireps;
-        if (sigmets)  weatherData.sigmets  = sigmets;
-        if (gairmets) weatherData.gairmets = gairmets;
+        const tafs = val(tafRes);
         weatherData.metarOutage = metarOutage;
         // AWC is sometimes slow for a single request — retry once after 8 s before waiting out the 2-min cycle
         const needRetry = metarOutage || (!tafs && !(weatherData.tafs || []).length);
@@ -1684,8 +1692,8 @@
         // Show/hide outage banner
         document.getElementById("outageBanner").style.display = metarOutage ? "block" : "none";
 
-        // Fetch SUA data (non-blocking, cached separately)
-        if (!weatherData._suaLoaded) fetchSUA();
+        // SUA starts at load; retry here only if that attempt failed
+        if (!weatherData._suaLoaded && !_suaInFlight) fetchSUA();
 
         const m = Array.isArray(weatherData.metars) ? weatherData.metars.length : 0;
         const t = Array.isArray(weatherData.tafs) ? weatherData.tafs.length : 0;
@@ -1707,74 +1715,82 @@
       checkStaleMETARs();
     }
 
-    // ========== WINDS ALOFT ==========
-    const FD_STATIONS = ["FWA", "CLE", "CMH"];
-    const FD_ALTS = [3000, 6000, 9000];
-
-    function decodeFdEntry(entry) {
-      entry = (entry || "").trim();
-      if (!entry) return null;
-      if (entry === "9900") return { dir: "L&V", spd: 0, tmp: null };
-      const m = entry.match(/^(\d{4})([+-]\d{2})?$/);
-      if (!m) return null;
-      let dd = parseInt(m[1].slice(0, 2));
-      let ss = parseInt(m[1].slice(2));
-      const tmp = m[2] ? parseInt(m[2]) : null;
-      if (dd > 36) { dd -= 50; ss += 100; } // high-speed encoding
-      return { dir: dd * 10, spd: ss, tmp };
+    // ========== WINDS ALOFT (Open-Meteo model, v1.45) ==========
+    // AWC's FD winds/temps tables were discontinued with the NAM retirement (NWS SCN 26-47, 3 Nov 2026).
+    // Open-Meteo gives model winds and temperatures on pressure levels with their geopotential heights
+    // (m MSL); we interpolate to 3,000 / 6,000 / 9,000 ft MSL at the same three stations.
+    const WA_STATIONS = [
+      { id: "FWA", name: "Fort Wayne", lat: 40.9785, lon: -85.1952 },
+      { id: "CLE", name: "Cleveland",  lat: 41.4117, lon: -81.8498 },
+      { id: "CMH", name: "Columbus",   lat: 39.9980, lon: -82.8919 },
+    ];
+    const WA_ALTS = [3000, 6000, 9000];
+    const WA_LEVELS = [1000, 975, 950, 925, 900, 850, 800, 750, 700];   // hPa, surface to ~10,000 ft
+    function windsAloftUrl() {
+      const vars = WA_LEVELS.flatMap(l => [`wind_speed_${l}hPa`, `wind_direction_${l}hPa`, `temperature_${l}hPa`, `geopotential_height_${l}hPa`]);
+      return 'https://api.open-meteo.com/v1/forecast' +
+        `?latitude=${WA_STATIONS.map(s => s.lat).join(',')}&longitude=${WA_STATIONS.map(s => s.lon).join(',')}` +
+        `&hourly=${vars.join(',')}&wind_speed_unit=kn&timeformat=unixtime&timezone=GMT&past_hours=1&forecast_hours=2`;
     }
-
+    // One station's winds at WA_ALTS for hour index i. Levels below ground are skipped; altitudes outside
+    // the levels we have come back as null ("—"). Winds are interpolated as u/v components.
+    function interpWindsAloft(hourly, i, elevM) {
+      const lv = [];
+      for (const l of WA_LEVELS) {
+        const z = hourly[`geopotential_height_${l}hPa`]?.[i], d = hourly[`wind_direction_${l}hPa`]?.[i];
+        const v = hourly[`wind_speed_${l}hPa`]?.[i], t = hourly[`temperature_${l}hPa`]?.[i];
+        if ([z, d, v].some(x => typeof x !== 'number') || z <= (elevM || 0)) continue;
+        const r = d * Math.PI / 180;
+        lv.push({ z, u: -v * Math.sin(r), w: -v * Math.cos(r), t: typeof t === 'number' ? t : null });
+      }
+      lv.sort((a, b) => a.z - b.z);
+      return WA_ALTS.map(alt => {
+        const h = alt * 0.3048;
+        const k = lv.findIndex((x, n) => n + 1 < lv.length && x.z <= h && lv[n + 1].z >= h);
+        if (k < 0) return { alt };
+        const a = lv[k], b = lv[k + 1], f = (h - a.z) / (b.z - a.z);
+        const u = a.u + f * (b.u - a.u), w = a.w + f * (b.w - a.w);
+        const spd = Math.round(Math.hypot(u, w));
+        const tmp = a.t !== null && b.t !== null ? Math.round(a.t + f * (b.t - a.t)) : null;
+        if (spd < 5) return { alt, dir: "L&V", spd: 0, tmp };          // FD convention for light & variable
+        let dir = Math.round(((Math.atan2(-u, -w) * 180 / Math.PI) + 360) % 360 / 10) * 10;
+        if (dir === 0) dir = 360;
+        return { alt, dir, spd, tmp };
+      });
+    }
+    // Pick the forecast hour nearest now and build the table model
+    function parseWindsAloft(data, now = Date.now()) {
+      const list = Array.isArray(data) ? data : [data];
+      const result = { source: "Open-Meteo", validTime: null, validEpoch: null, fetchedAt: now, stations: {} };
+      WA_STATIONS.forEach((st, n) => {
+        const d = list[n], hr = d && d.hourly;
+        if (!hr || !Array.isArray(hr.time) || !hr.time.length) return;
+        let i = 0;
+        hr.time.forEach((t, k) => { if (Math.abs(t * 1000 - now) < Math.abs(hr.time[i] * 1000 - now)) i = k; });
+        const rows = interpWindsAloft(hr, i, d.elevation);
+        if (!rows.some(r => r.dir !== undefined)) return;
+        result.stations[st.id] = rows;
+        result.validTime = hr.time[i] * 1000;
+      });
+      // Treated as expired 2 h after its valid hour (it is refreshed hourly)
+      if (result.validTime) result.validEpoch = result.validTime + 2 * 3600000;
+      return result;
+    }
     async function fetchWindsAloft() {
       try {
-        const okText = r => (r.ok ? r.text() : null);
-        const raw = await fetchT("/awc/windtemp/", 8000).then(okText).catch(() => null)
-          || await fetchT("https://aviationweather.gov/api/data/windtemp", 8000).then(okText).catch(() => null);
-        if (!raw || raw.includes('"error"') || /<html/i.test(raw)) return;
-        const lines = raw.split("\n");
-        // Parse valid time
-        let validStr = "";
-        let fetchedAt = Date.now();
-        for (const l of lines) {
-          if (l.includes("VALID") && l.includes("FOR USE")) { validStr = l.trim(); break; }
-        }
-        // Extract expiry from the "FOR USE HHMM-HHMM" window end time
-        const useTm = validStr.match(/FOR USE \d{4}-(\d{4})Z/);
-        const validTm = validStr.match(/VALID (\d{2})(\d{2})(\d{2})Z/);
-        let validEpoch = null;
-        if (useTm && validTm) {
-          const day = parseInt(validTm[1]);
-          const endHH = parseInt(useTm[1].slice(0,2));
-          const endMM = parseInt(useTm[1].slice(2,4));
-          const now = new Date();
-          // End time is on same day as the VALID day
-          let epoch = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, endHH, endMM, 0);
-          // If the computed epoch is more than 12 hours in the past, it's likely next month
-          if (Date.now() - epoch > 12 * 3600000) {
-            epoch = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, day, endHH, endMM, 0);
-          }
-          validEpoch = epoch;
-        }
-        // Parse station rows
-        const result = { validStr, validEpoch, fetchedAt, stations: {} };
-        for (const sid of FD_STATIONS) {
-          for (const l of lines) {
-            if (l.trimStart().startsWith(sid + " ")) {
-              const cols = l.trim().split(/\s+/);
-              result.stations[sid] = FD_ALTS.map((alt, i) => ({
-                alt,
-                ...decodeFdEntry(cols[i + 1]) // col 0 = station id
-              }));
-              break;
-            }
-          }
-        }
-        // Only replace the last good table if at least one station row parsed
-        if (Object.keys(result.stations).length) { weatherData.windsAloft = result; render(); }
-      } catch(e) { console.warn("Winds aloft fetch failed:", e); }
+        const r = await fetchT(windsAloftUrl(), 10000);
+        if (!r.ok) return;
+        const result = parseWindsAloft(await r.json());
+        // Only replace the last good table if at least one station parsed
+        if (Object.keys(result.stations).length) { weatherData.windsAloft = result; renderSoon(); }
+      } catch (e) { console.warn("Winds aloft fetch failed:", e); }
     }
 
     // ========== SUA FETCH ==========
+    let _suaInFlight = false;
     async function fetchSUA() {
+      if (_suaInFlight) return;
+      _suaInFlight = true;
       try {
         // Query MOAs (M), Restricted (R), and Prohibited (P) areas near 1G0
         // Bounding box ~75nm around BG: lat 41.39 ± 1.25, lon -83.63 ± 1.5
@@ -1806,10 +1822,10 @@
         }
         weatherData.suas.sort((a, b) => (a.NAME || "").localeCompare(b.NAME || ""));
         weatherData._suaLoaded = true;
-        render(); // Re-render to show SUA
+        renderSoon(); // Re-render to show SUA
       } catch (e) {
         console.warn("SUA fetch failed:", e);
-      }
+      } finally { _suaInFlight = false; }
     }
 
     // ========== TFR CHECK ==========
@@ -1900,10 +1916,10 @@
       if (staleTafs.length > 0)
         issues.push(`TAF${staleTafs.length > 1 ? "s" : ""} stale/expired: ${staleTafs.map(t => t.icaoId).join(", ")}`);
 
-      // Stale winds aloft: FD product valid time has expired
+      // Stale winds aloft: model hour is more than 2 h old (refreshed hourly)
       const wa = weatherData.windsAloft;
       if (wa && wa.validEpoch && wa.validEpoch < now) {
-        issues.push("Winds aloft product has expired");
+        issues.push("Winds aloft model data is out of date");
       }
 
       if (issues.length > 0) {
@@ -1918,6 +1934,21 @@
     setInterval(checkStaleMETARs, 60000);
 
     let chartsInitialized = false;
+    // Charts are static (image URLs don't change with weather data), so they are built at start-up
+    // instead of waiting for the weather fetch (v1.45). Only initialized once — prevents radar/prog tab
+    // state from resetting on every 2-minute auto-refresh and stops duplicate event listener buildup.
+    function initCharts() {
+      if (chartsInitialized) return;
+      document.getElementById("chartsPanel").innerHTML = renderCharts();
+      setupProgTabs();
+      setupRadarTabs();
+      chartsInitialized = true;
+      if (activeRadarKey !== 'centgrlakes' && RADAR_URLS[activeRadarKey]) {
+        document.querySelectorAll("#radarTabs .chart-tab").forEach(b => b.classList.toggle("active", b.dataset.radar === activeRadarKey));
+        document.getElementById("radarImg").src = RADAR_URLS[activeRadarKey][0];
+        document.getElementById("radarCaption").textContent = RADAR_URLS[activeRadarKey][1];
+      }
+    }
     function render() {
       const { metars, tafs } = weatherData;
       const filtered = AIRPORTS.filter(a => a.group === activeAptGroup);
@@ -1935,20 +1966,7 @@
       if (!firstLoadPending) {
         setHTMLPreservingDetails(document.getElementById("airportCards"), cardsHtml);
       }
-      // Charts are static (image URLs don't change with weather data).
-      // Only initialize once — prevents radar/prog tab state from resetting
-      // on every 2-minute auto-refresh and stops duplicate event listener buildup.
-      if (!chartsInitialized) {
-        document.getElementById("chartsPanel").innerHTML = renderCharts();
-        setupProgTabs();
-        setupRadarTabs();
-        chartsInitialized = true;
-        if (activeRadarKey !== 'centgrlakes' && RADAR_URLS[activeRadarKey]) {
-          document.querySelectorAll("#radarTabs .chart-tab").forEach(b => b.classList.toggle("active", b.dataset.radar === activeRadarKey));
-          document.getElementById("radarImg").src = RADAR_URLS[activeRadarKey][0];
-          document.getElementById("radarCaption").textContent = RADAR_URLS[activeRadarKey][1];
-        }
-      }
+      initCharts();
       setHTMLPreservingDetails(document.getElementById("regionalPanel"), renderRegional());
       renderBriefModal(false);
       applyHeaderTheme(getMetar(Array.isArray(weatherData.metars) ? weatherData.metars : [], 'KTOL'));
@@ -2140,7 +2158,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.44";
+    const CURRENT_VERSION = "v1.45";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());
@@ -2393,6 +2411,23 @@
       }
     }
 
+    // Leaflet (map library, ~46 KB) is fetched only when a TFR map is first opened
+    const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    let _leafletP = null, _tfrMapToken = 0;
+    function loadLeaflet() {
+      if (typeof L !== 'undefined') return Promise.resolve();
+      if (_leafletP) return _leafletP;
+      const add = (tag, attrs) => new Promise((res, rej) => {
+        const el = document.createElement(tag);
+        Object.assign(el, attrs); el.crossOrigin = '';
+        el.onload = () => res(); el.onerror = () => rej(new Error('load failed: ' + (attrs.src || attrs.href)));
+        document.head.appendChild(el);
+      });
+      _leafletP = Promise.all([add('link', { rel: 'stylesheet', href: LEAFLET_CSS }), add('script', { src: LEAFLET_JS })])
+        .catch(e => { _leafletP = null; throw e; });   // allow a retry next time
+      return _leafletP;
+    }
     function showTFRModal(t) {
       if (!t || !t.feature) return;
       const props  = t.feature.properties || {};
@@ -2423,45 +2458,50 @@
       modal.style.display = 'block';
       document.body.style.overflow = 'hidden';
 
-      // Build / reset map (skip gracefully if Leaflet was blocked by a network filter)
+      // Build / reset map. Leaflet is loaded only now, the first time a TFR map is opened (v1.45).
       const mapDiv = document.getElementById('tfrMapDiv');
       if (tfrLeafMap) { tfrLeafMap.remove(); tfrLeafMap = null; }
-      if (typeof L === 'undefined') {
-        mapDiv.innerHTML = '<p style="padding:16px;font-size:13px;color:var(--text-muted)">Map unavailable (Leaflet library could not load). Use the FAA link below for TFR details.</p>';
-      } else {
-      tfrLeafMap = L.map(mapDiv, { zoomControl: true });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-        maxZoom: 14
-      }).addTo(tfrLeafMap);
-
-      // Draw TFR polygon — FAA WFS coordinates are exact (lon, lat GeoJSON order)
-      let tfrLayer = null;
-      if (geom) {
-        tfrLayer = L.geoJSON(geom, {
-          style: { color: '#c0392b', fillColor: '#e74c3c', fillOpacity: 0.2, weight: 2.5 }
+      const mapToken = ++_tfrMapToken;
+      mapDiv.innerHTML = '<p style="padding:16px;font-size:13px;color:var(--text-muted)">Loading map…</p>';
+      loadLeaflet().then(() => {
+        if (mapToken !== _tfrMapToken || modal.style.display === 'none') return;   // closed, or another TFR opened
+        mapDiv.innerHTML = '';
+        tfrLeafMap = L.map(mapDiv, { zoomControl: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+          maxZoom: 14
         }).addTo(tfrLeafMap);
-      }
 
-      // 1G0 reference marker — prominent blue circle with permanent label
-      const bgIcon = L.divIcon({
-        className: '',
-        html: '<div style="background:#1a7abf;border:2px solid #fff;border-radius:50%;width:12px;height:12px;box-shadow:0 0 4px rgba(0,0,0,0.5)"></div>',
-        iconSize: [12, 12], iconAnchor: [6, 6]
+        // Draw TFR polygon — FAA WFS coordinates are exact (lon, lat GeoJSON order)
+        let tfrLayer = null;
+        if (geom) {
+          tfrLayer = L.geoJSON(geom, {
+            style: { color: '#c0392b', fillColor: '#e74c3c', fillOpacity: 0.2, weight: 2.5 }
+          }).addTo(tfrLeafMap);
+        }
+
+        // 1G0 reference marker — prominent blue circle with permanent label
+        const bgIcon = L.divIcon({
+          className: '',
+          html: '<div style="background:#1a7abf;border:2px solid #fff;border-radius:50%;width:12px;height:12px;box-shadow:0 0 4px rgba(0,0,0,0.5)"></div>',
+          iconSize: [12, 12], iconAnchor: [6, 6]
+        });
+        L.marker([BG_LAT, BG_LON], { icon: bgIcon })
+          .addTo(tfrLeafMap)
+          .bindTooltip('1G0 — Bowling Green', { permanent: true, direction: 'right', offset: [8, 0],
+            className: 'leaflet-tooltip' });
+
+        // Auto-fit bounds to show TFR + 1G0 with padding
+        try {
+          const base = tfrLayer ? tfrLayer.getBounds() : L.latLngBounds([[BG_LAT, BG_LON]]);
+          tfrLeafMap.fitBounds(base.extend([BG_LAT, BG_LON]), { padding: [30, 30] });
+        } catch(e) { tfrLeafMap.setView([BG_LAT, BG_LON], 9); }
+
+        setTimeout(() => { if (tfrLeafMap) tfrLeafMap.invalidateSize(); }, 120);
+      }).catch(() => {
+        // skip gracefully if Leaflet was blocked by a network filter
+        if (mapToken === _tfrMapToken) mapDiv.innerHTML = '<p style="padding:16px;font-size:13px;color:var(--text-muted)">Map unavailable (Leaflet library could not load). Use the FAA link below for TFR details.</p>';
       });
-      L.marker([BG_LAT, BG_LON], { icon: bgIcon })
-        .addTo(tfrLeafMap)
-        .bindTooltip('1G0 — Bowling Green', { permanent: true, direction: 'right', offset: [8, 0],
-          className: 'leaflet-tooltip' });
-
-      // Auto-fit bounds to show TFR + 1G0 with padding
-      try {
-        const base = tfrLayer ? tfrLayer.getBounds() : L.latLngBounds([[BG_LAT, BG_LON]]);
-        tfrLeafMap.fitBounds(base.extend([BG_LAT, BG_LON]), { padding: [30, 30] });
-      } catch(e) { tfrLeafMap.setView([BG_LAT, BG_LON], 9); }
-
-      setTimeout(() => { if (tfrLeafMap) tfrLeafMap.invalidateSize(); }, 120);
-      } // end Leaflet-available branch
 
       // Details row
       const rows = [];
@@ -2840,6 +2880,8 @@
 
     // ========== INIT ==========
     fetchData();
+    initCharts();   // radar / prog / SPC images start now, not after the weather data
+    fetchSUA();     // Special Use Airspace doesn't depend on the weather data either
     fetchRunwayGeo();
     fetchBGForecast();
     checkTFRs();
@@ -2849,7 +2891,7 @@
     setInterval(refreshCharts, 300000);    // radar / prog / SPC images every 5 min
     setInterval(fetchBGForecast, 3600000); // daily hi/lo — hourly is plenty
     setInterval(checkTFRs, 300000);
-    setInterval(fetchWindsAloft, 3600000); // Winds aloft updates hourly
+    setInterval(fetchWindsAloft, 3600000); // Winds aloft (Open-Meteo model) hourly
     setInterval(fetchAlerts, 900000);      // NWS alerts every 15 min
     // Defer heavy iframes until after initial weather data loads
     setTimeout(loadDeferredIframes, 100);

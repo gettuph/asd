@@ -1,4 +1,3 @@
-/awc/windtemp/ https://aviationweather.gov/api/data/windtemp 200
 /awc/metar/* https://aviationweather.gov/api/data/metar?:splat 200
 /awc/taf/* https://aviationweather.gov/api/data/taf?:splat 200
 /awc/pirep/* https://aviationweather.gov/api/data/pirep?:splat 200
