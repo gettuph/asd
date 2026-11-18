@@ -31,7 +31,7 @@ Nothing right now.
 
 ## Testing (next layer, not built)
 
-- **Browser tests with Playwright** against saved AWC fixtures: no console errors, 16 cards, outage banner behaviour, open `<details>` surviving re-render, briefing view with no pane overlaps at 390×844 / 820×1180 / 1180×820 / 1920×1080, no CAVU iframe before click, disclaimers present.
+- **Browser tests with Playwright** against saved AWC fixtures: no console errors, 16 cards, outage banner behaviour, open `<details>` surviving re-render, briefing view with no pane overlaps at 390×844 / 820×1180 / 1180×820 / 1920×1080, no CAVU iframe anywhere (it is a link since v1.42), disclaimers present.
 - **Production smoke check** (run on command): live `version.txt` matches served `CURRENT_VERSION`; each `_redirects` proxy returns JSON; KTOL METAR present.
 
 ## Shelved ideas
