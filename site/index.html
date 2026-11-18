@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.41</title>
+  <title>Aviation Situation Dashboard v1.42</title>
   <!-- Favicon & home screen icons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -180,7 +180,7 @@
       .tabs { display: none; }
       .tab-content { display: block !important; }
       .main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-      .bottom-panels { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .bottom-panels { grid-column: 1 / -1; }
     }
 
     .section-title {
@@ -443,7 +443,7 @@
         <img src="favicon.svg" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.41&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.42&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -478,7 +478,6 @@
     <button class="tab-btn" data-tab="charts">Charts</button>
     <button class="tab-btn" data-tab="regional">Region</button>
     <button class="tab-btn" data-tab="adsb">ADS-B</button>
-    <button class="tab-btn" data-tab="preduty">ATC Brief</button>
   </nav>
 
   <!-- Main content -->
@@ -503,21 +502,6 @@
       <div id="regionalPanel"></div>
     </div>
     <div class="bottom-panels">
-    <div class="tab-content" id="panel-preduty">
-      <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
-        <span>📡 ATC Pre-Duty Weather Brief (ZOB)</span>
-        <a href="https://www.cavuwx.com/predutywx/zob/" target="_blank" rel="noopener noreferrer" class="ext-link">Open full page <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
-      </div>
-      <div class="card">
-        <div id="predutyIframeWrap" style="padding:0;overflow:hidden;border-radius:var(--radius)">
-          <button id="predutyLoadBtn" type="button" style="width:100%;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--surface);color:var(--text);border:1px dashed var(--border);border-radius:var(--radius);cursor:pointer;padding:28px 16px;font:inherit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:34px;height:34px;color:var(--primary)"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
-            <span style="font-size:15px;font-weight:600">Load ATC Pre-Duty Weather Brief</span>
-            <span style="font-size:12px;color:var(--text-muted)">The CAVU briefing video includes audio and is not loaded until you click.</span>
-          </button>
-        </div>
-      </div>
-    </div>
     <div class="tab-content" id="panel-adsb">
       <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
         <span>✈️ Live ADS-B Traffic (≤ 10,000ft)</span>
@@ -1630,6 +1614,14 @@
         html += `<p style="font-size:12px;color:var(--text-muted);font-style:italic">No recent PIREPs in the area.</p>`;
       }
       html += `</div></div>`;
+      // Link out to the CAVU ZOB pre-duty brief (a video with audio — opened in a new tab, never embedded)
+      html += `<div class="card"><div class="card-header"><strong style="font-size:14px">ATC Pre-Duty Brief</strong></div><div class="card-body">
+        <div class="link-grid" style="grid-template-columns:1fr">
+          <a href="https://www.cavuwx.com/predutywx/zob/" target="_blank" rel="noopener noreferrer" class="link-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1.5V4"/><path d="M5.5 4h13l-2 5.5h-9z"/><path d="M10 4.2l.6 5.1M14 4.2l-.6 5.1"/><path d="M9.8 9.5L9 21M14.2 9.5L15 21"/><path d="M6 21h12"/></svg>
+            CAVU ZOB Pre-Duty Weather Brief (video, opens in new tab)
+          </a>
+        </div></div></div>`;
       return html;
     }
 
@@ -2130,17 +2122,6 @@
 
     // ========== DEFERRED IFRAME LOADING ==========
     // Load iframes only when they scroll into view (desktop) or tab is tapped (mobile)
-    // Pre-duty brief embeds a video that auto-plays; only create the iframe when asked
-    document.getElementById('predutyLoadBtn').addEventListener('click', () => {
-      const wrap = document.getElementById('predutyIframeWrap');
-      const f = document.createElement('iframe');
-      f.id = 'predutyFrame';
-      f.src = 'https://www.cavuwx.com/predutywx/zob/';
-      f.title = 'ATC Pre-Duty Weather Brief - Cleveland Center (ZOB)';
-      f.style.cssText = 'width:100%;height:70vh;min-height:500px;border:none;border-radius:var(--radius)';
-      wrap.innerHTML = '';
-      wrap.appendChild(f);
-    });
 
     function loadDeferredIframes() {
       document.querySelectorAll('iframe[data-src]').forEach(iframe => {
@@ -2157,7 +2138,7 @@
     }
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.41";
+    const CURRENT_VERSION = "v1.42";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());

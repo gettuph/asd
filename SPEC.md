@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.41** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.42** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -19,7 +19,7 @@ Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). Al
 
 - Fetch order for AWC data: Netlify proxy first, then fallback to codetabs and allorigins. Each try has its own timeout (proxy timeout is 10 s).
 - External libraries: Leaflet 1.9.4 (TFR map, OpenStreetMap tiles). Fonts: General Sans, JetBrains Mono.
-- Other sources: Open-Meteo (BG high/low), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and CAVU pre-duty brief.
+- Other sources: Open-Meteo (BG high/low), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and a link to the CAVU pre-duty brief.
 - PWA-lite: `manifest.json` and icons for Add to Home Screen. There is no service worker.
 
 ## 2. Airports
@@ -37,7 +37,7 @@ There are 16 airports in three distance groups. Each has ICAO code, name, city, 
   - Clock colons blink once a second instead of showing running seconds, so the layout doesn't shift.
   - 24-hour time uses `hourCycle: 'h23'`, so midnight shows 00:xx.
   - Controls, left to right: airport lookup box + Go (dimmed; collapses to a dimmed magnifier icon below 700 px), briefing view (dimmed), fullscreen (dimmed, hidden if the browser doesn't support it), light/dark toggle, and refresh.
-- **Tabs, in order:** Airports, Charts, Region, ADS-B, ATC Brief. On desktop, Airports, Charts, and Region show as three equal columns.
+- **Tabs, in order:** Airports, Charts, Region, ADS-B. On desktop, Airports, Charts, and Region show as three equal columns, with ADS-B full width below them.
 - **Banners, at the top as needed:** new version available, METAR outage, stale data, and TFR.
 
 ## 4. Airport cards
@@ -105,7 +105,7 @@ Shown in this order:
 3. **SIGMETs:** within 150 nm, using point-in-polygon plus distance to the nearest edge.
 4. **G-AIRMETs:** within 150 nm, at or below 10,000 ft, with the same polygon test.
 5. **PIREPs:** within 150 nm, at or below FL100, up to 10, decoded for turbulence and icing. Urgent (UUA) and severe reports are highlighted.
-6. **NOTAMs:** a single link to FAA NOTAM Search. No per-airport links.
+6. **ATC Pre-Duty Brief:** the last card, under PIREPs. One link tile (control-tower icon, same `link-card` style as the Charts tab links): "CAVU ZOB Pre-Duty Weather Brief (video, opens in new tab)" → https://www.cavuwx.com/predutywx/zob/. Nothing is embedded. (Replaced the ATC Brief tab in v1.42.)
 
 ## 7. Alerts and banners
 
@@ -175,10 +175,9 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 - Closes with ×, Escape, or a click on the backdrop; closing clears both boxes so the `LocID` placeholder shows again. Pull-to-refresh is blocked inside it.
 - Text size: raw METAR/TAF `clamp(14px, 1.1vw, 22px)`, decoded fields `clamp(13px, 1vw, 19px)`.
 
-## 10. ADS-B and ATC Brief tabs
+## 10. ADS-B tab
 
 - **ADS-B:** an airplanes.live iframe that loads automatically. All Traffic and BGSU Fleet toggles. BGSU Fleet (`filterCallSign=BG`) is the default.
-- **ATC Brief:** CAVU ZOB pre-duty brief. It shows a "Load ATC Pre-Duty Weather Brief" placeholder that notes the video has audio. The iframe is created only after a click, so nothing autoplays.
 
 ## 11. Refresh timing
 

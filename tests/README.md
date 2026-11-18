@@ -17,7 +17,7 @@ Requires Node 20+. No dependencies to install.
 - `CURRENT_VERSION`, `<title>`, the header label, and `version.txt` all agree;
 - both safety disclaimers are present word for word, and the briefing view's is first;
 - removed features stay removed (classroom tips, sky flash, callouts, NOTAM links);
-- no autoplay: no CAVU iframe in static HTML, the load button exists;
+- no autoplay: no CAVU iframe in static HTML, no ATC Brief tab or pre-duty panel, the CAVU link opens in a new tab and sits under PIREPs in the Region tab;
 - header control order and dimming;
 - Mobile Safari rules (no sticky+overflow on `.header`, briefing images absolutely positioned, zero-minimum grid tracks, `max-content` rows);
 - weather detection splits at ` RMK `; no `rawBody` typo;
