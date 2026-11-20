@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.45** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.46** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -33,7 +33,7 @@ There are 16 airports in three distance groups. Each has ICAO code, name, city, 
 
 ## 3. Layout
 
-- **Header:** ASD icon (same as the iOS home-screen icon), title, and version. The clock line shows 12-hour local, 24-hour local, and Zulu time, followed by `BG ↑hi° ↓lo°`.
+- **Header:** ASD icon (since v1.46 the same artwork as the home-screen icon: `icon-72.png`, with `icon-108.png` for 3× screens, scaled from `icon-512.png`; the browser-tab `favicon.svg` is unchanged), title, and version. The clock line shows 12-hour local, 24-hour local, and Zulu time, followed by `BG ↑hi° ↓lo°`.
   - Clock colons blink once a second instead of showing running seconds, so the layout doesn't shift.
   - 24-hour time uses `hourCycle: 'h23'`, so midnight shows 00:xx.
   - Controls, left to right: airport lookup box + Go (dimmed; collapses to a dimmed magnifier icon below 700 px), briefing view (dimmed), fullscreen (dimmed, hidden if the browser doesn't support it), light/dark toggle, and refresh.
