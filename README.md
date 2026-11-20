@@ -11,7 +11,7 @@ Live site: https://aert2800wx.netlify.app
   - `index.html` — the full app (single file)
   - `_redirects` — Netlify reverse-proxy rules for aviationweather.gov, api.weather.gov, and tfr.faa.gov
   - `version.txt` — current version; the app checks it to show an "update available" banner
-  - `manifest.json`, `favicon.svg`, `icon-*.png` — home-screen/PWA metadata (`icon-72.png` / `icon-108.png` are the header logo)
+  - `manifest.json`, `favicon.svg`, `favicon.ico`, `icon-*.png` — home-screen/PWA metadata and tab icon (`icon-72.png` / `icon-108.png` are the header logo)
 - `netlify/functions/atis.js` — D-ATIS relay (holds the ATIS Relay key from the `ATIS_RELAY_KEY` environment variable; KDTW, KCLE, KCMH, KIND; one cached copy per airport per 5-minute bucket)
 - `scripts/deploy.py` — uploads `site/` and `netlify/functions/` to Netlify with the file-digest API (`--draft` for a preview)
 - `tests/`, `package.json` — static checks and unit tests (`tests/fixtures/` holds saved FAA runway footprints) (`npm test`, Node 20+, no dependencies). Not scheduled; run on demand.

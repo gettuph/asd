@@ -55,6 +55,7 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
 ## Versioning
 
 - The format is `vMAJOR.MINOR`. Each deploy increases the second number (v1.30 → v1.31). The owner decides on major versions.
+- When the browser-tab icon changes (`favicon.svg`, `favicon.ico`, `icon-32.png`), bump the `?v=` number on all three `<link rel="icon">` tags; browsers cache tab icons and won't refetch the same URL.
 - On every release, update both `CURRENT_VERSION` in `index.html` and `version.txt` to the same value. The in-app update banner depends on it. The ATIS Relay `User-Agent` in `netlify/functions/atis.js` carries the same number (a static check enforces it).
 - Small fixes made at the owner's request can keep the same version if the owner says so.
 

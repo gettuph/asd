@@ -150,9 +150,10 @@ for (const p of ['/awc/metar/', '/awc/taf/', '/awc/pirep/', '/awc/airsigmet/', '
 }
 
 // ---- 11. manifest / icons ---------------------------------------------------------------
+check('tab icon links carry the same ?v= cache-buster (favicon.ico, .svg, icon-32.png)', (() => { const v = [...html.matchAll(/<link rel="icon"[^>]*href="([^"?]+)\?v=(\d+)"/g)]; return v.length === 3 && new Set(v.map(m => m[2])).size === 1 && ['favicon.ico','favicon.svg','icon-32.png'].every(f => v.some(m => m[1] === f)); })());
 check('header logo uses the home-screen icon artwork (icon-72/108), not favicon.svg', /<div class="logo">\s*<img src="icon-72\.png" srcset="icon-72\.png 2x, icon-108\.png 3x"/.test(html));
 for (const icon of manifest.icons || []) check(`manifest icon exists: ${icon.src}`, fs.existsSync(path.join(ROOT, icon.src)));
-for (const f of ['favicon.svg', 'icon-32.png', 'icon-72.png', 'icon-108.png', 'icon-180.png', 'icon-192.png', 'icon-512.png']) check(`file present: ${f}`, fs.existsSync(path.join(ROOT, f)));
+for (const f of ['favicon.svg', 'favicon.ico', 'icon-32.png', 'icon-72.png', 'icon-108.png', 'icon-180.png', 'icon-192.png', 'icon-512.png']) check(`file present: ${f}`, fs.existsSync(path.join(ROOT, f)));
 
 // ---- 12. no secrets (AGENTS.md rule 14) --------------------------------------------------
 const REPO = path.join(__dirname, '..');
