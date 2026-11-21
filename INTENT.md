@@ -33,7 +33,7 @@ These came out of the decisions made while building the app. When a new request 
 4. **Fast and reliable on a classroom network.** Weather data loads first. Same-origin Netlify proxies are preferred over free third-party CORS proxies. Retry slow or empty responses.
 5. **Plain, readable, not distracting.** Use plain-language decoding ("Broken ceiling at 3000 ft"). Large text on big screens. Animations stay subtle. The sky flash was rejected because it was distracting.
 6. **Classroom controls stay out of the way.** The fullscreen and briefing-view buttons are dimmed so regular users aren't confused by them.
-7. **Nothing plays on its own.** The ATC pre-duty briefing video is a link in the Region tab, not an embedded panel (owner decision, v1.42).
+7. **Nothing plays on its own.** The ATC pre-duty briefing video is a link in the Region tab, not an embedded panel (owner decision, v1.42); since v1.49 the link opens it in a modal, which loads the video only after the click and removes it on close.
 8. **Easy to roll back.** Big visual features, such as the weather-themed header, should be self-contained so they can be reverted in one deploy.
 
 ## Decisions to keep

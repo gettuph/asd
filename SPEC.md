@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.48** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.49** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -19,7 +19,7 @@ Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). Al
 
 - Fetch order for AWC data: Netlify proxy first, then fallback to codetabs and allorigins. Each try has its own timeout (proxy timeout is 10 s).
 - External libraries: Leaflet 1.9.4 (TFR map, OpenStreetMap tiles), loaded only when a TFR map is first opened (`loadLeaflet`; a failed load shows "Map unavailable…" and retries next time). Fonts: General Sans, JetBrains Mono.
-- Other sources: Open-Meteo (BG high/low, and model winds aloft), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and a link to the CAVU pre-duty brief.
+- Other sources: Open-Meteo (BG high/low, and model winds aloft), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and the CAVU pre-duty brief (shown in a modal on click).
 - PWA-lite: `manifest.json` and icons for Add to Home Screen (iPad/iPhone) and Add to Dock (Mac). There is no service worker.
   - The manifest's `display: standalone` opens the Dock or home-screen app in its own window without browser controls; the icon is `icon-180.png` (Safari, `apple-touch-icon`) or `icon-192/512.png` (Chrome, manifest).
   - Home Screen install:
@@ -114,7 +114,8 @@ Shown in this order:
 3. **SIGMETs:** within 150 nm, using point-in-polygon plus distance to the nearest edge.
 4. **G-AIRMETs:** within 150 nm, at or below 10,000 ft, with the same polygon test.
 5. **PIREPs:** within 150 nm, at or below FL100, up to 10, decoded for turbulence and icing. Urgent (UUA) and severe reports are highlighted.
-6. **ATC Pre-Duty Brief:** the last card, under PIREPs. One link tile (control-tower icon, same `link-card` style as the Charts tab links): "CAVU ZOB Pre-Duty Weather Brief (video, opens in new tab)" → https://www.cavuwx.com/predutywx/zob/. Nothing is embedded. (Replaced the ATC Brief tab in v1.42.)
+6. **ATC Pre-Duty Brief:** the last card, under PIREPs. One link tile (control-tower icon, same `link-card` style as the Charts tab links): "CAVU ZOB Pre-Duty Weather Brief (video)". A click opens the media modal (v1.49), which creates the CAVU iframe (https://www.cavuwx.com/predutywx/zob/) only then; Cmd/Ctrl/Shift-click opens CAVU in a new tab instead. (Replaced the ATC Brief tab in v1.42.)
+   - **Media modal** (`#mediaModal`, `openMediaModal(kind)`, shared with the desktop ADS-B map): header with the title, "Open on CAVU" link, and × (Esc and clicking outside also close); the iframe fills the body; footer "Briefing video from CAVU. It plays with audio; closing this window stops it." Up to 1200 px wide and the full window height on desktop; full screen with no margins at 700 px and below. Closing removes the iframe, so the video and audio stop. Pull-to-refresh is blocked inside it.
 
 ## 7. Alerts and banners
 

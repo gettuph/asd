@@ -55,7 +55,9 @@ check('no ATC Brief tab or pre-duty panel (removed v1.42)', !/data-tab="preduty"
   const r = src.slice(src.indexOf('function renderRegional'), src.indexOf('// ========== DATA FETCH'));
   check('CAVU link sits at the bottom of the Region tab, under PIREPs', r.indexOf('PIREPs (within') > 0 && r.indexOf('cavuwx.com/predutywx/zob') > r.indexOf('PIREPs (within'));
 }
-check('Region tab links to the CAVU ZOB pre-duty brief in a new tab', /<a href="https:\/\/www\.cavuwx\.com\/predutywx\/zob\/" target="_blank" rel="noopener noreferrer" class="link-card">/.test(src.slice(src.indexOf('function renderRegional'))));
+check('Region tab CAVU tile opens the media modal (modifier-click still opens a new tab)', /<a href="https:\/\/www\.cavuwx\.com\/predutywx\/zob\/" target="_blank" rel="noopener noreferrer" class="link-card" onclick="if\(!event\.metaKey&&!event\.ctrlKey&&!event\.shiftKey\)\{event\.preventDefault\(\);openMediaModal\('cavu'\)\}">/.test(src.slice(src.indexOf('function renderRegional'))));
+check('media modal: iframe only while open (no iframe in the modal markup; close empties the body)', !/<iframe/i.test(html.slice(html.indexOf('id="mediaModal"'), html.indexOf('id="lookupModal"'))) && /function closeMediaModal[\s\S]*?getElementById\('mediaModalBody'\)\.innerHTML = ''/.test(src));
+check('media modal closes on Escape and blocks pull-to-refresh', /closeMediaModal\(\); \} \}\);/.test(src) && /#mediaModal, \.leaflet-container/.test(src));
 check('no allow="autoplay" anywhere', !/allow="[^"]*autoplay(?!\s*'none')/i.test(html));
 
 // ---- 6. classroom controls (AGENTS.md rule 8) -----------------------------------------
@@ -125,7 +127,7 @@ check("header theme splits rawOb at ' RMK ' before weather checks", /const rxBod
 check('no stray rawBody identifier (v1.19 typo)', !/\brawBody\b/.test(src));
 
 // ---- 9. DOM ids referenced in JS exist in HTML (or are created dynamically) -------------
-const DYNAMIC_IDS = new Set(['ptrArrow', 'ptrText', 'radarImg', 'progImg', 'spcImg', 'radarCaption', 'progCaption',
+const DYNAMIC_IDS = new Set(['ptrArrow', 'ptrText', 'mediaFrame', 'radarImg', 'progImg', 'spcImg', 'radarCaption', 'progCaption',
   'radarTabs', 'progTabs', 'tfrMapDiv', 'briefProg', 'briefRadar']);
 const htmlIds = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]));
 const jsIds = new Set([...src.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(m => m[1]));

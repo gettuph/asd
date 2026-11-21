@@ -40,7 +40,7 @@ Read `INTENT.md` (why it exists and what to protect), `SPEC.md` (what it does), 
 6. **Load performance:**
    - METARs and TAFs load first, and NWS alerts are delayed.
    - Use the Netlify proxy paths in `_redirects` before any third-party proxy. To add a new upstream, add a `_redirects` rule.
-7. **No autoplay.** Nothing with audio or video is embedded; the CAVU pre-duty brief is a link that opens in a new tab (Region tab, under PIREPs).
+7. **No autoplay.** Nothing with audio or video loads until a click. The CAVU pre-duty brief iframe is created only when its modal is opened (Region tab, under PIREPs) and removed when it closes.
 8. **Classroom controls stay discreet:** fullscreen and briefing view are dimmed (55% opacity) and placed to the left of the theme toggle.
 9. **Mobile Safari:**
    - Don't combine `position: sticky` with `overflow: hidden` on the header.

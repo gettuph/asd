@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.48</title>
+  <title>Aviation Situation Dashboard v1.49</title>
   <!-- Favicon & home screen icons -->
   <!-- ?v= forces browsers to fetch a changed tab icon; bump it whenever favicon.svg / icon-32.png / favicon.ico change -->
   <link rel="icon" href="favicon.ico?v=148" sizes="48x48">
@@ -324,6 +324,28 @@
     .link-card:hover { background: color-mix(in srgb, var(--border) 50%, transparent); }
     .link-card svg { width: 20px; height: 20px; color: var(--primary); }
 
+    /* Media modal (v1.49): CAVU pre-duty brief video; desktop ADS-B map (v1.50). The iframe exists only while open. */
+    #mediaModal { display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.65); padding:20px; }
+    #mediaModal .media-dialog { max-width:1200px; height:100%; margin:0 auto; display:flex; flex-direction:column; background:var(--surface); border-radius:var(--radius); box-shadow:0 8px 32px rgba(0,0,0,0.4); overflow:hidden; }
+    #mediaModal .media-head { padding:10px 14px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); }
+    #mediaModal .media-head strong { font-size:16px; margin-right:auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #mediaModal .media-head .ext-link { white-space:nowrap; flex:none; }
+    #mediaModal .media-head .chart-tabs { margin:0; }
+    #mediaModal .media-head .chart-tab { flex:none; padding:6px 12px; }
+    #mediaModal .media-head .icon-btn svg { width:18px; height:18px; }
+    #mediaModal .media-body { flex:1; min-height:0; background:#000; }
+    #mediaModal .media-body iframe { width:100%; height:100%; border:none; display:block; }
+    #mediaModal .media-foot { padding:6px 14px; font-size:11px; color:var(--text-muted); }
+    #mediaModal .media-foot a { color:var(--primary); }
+    #mediaModal.max { padding:0; }
+    #mediaModal.max .media-dialog { max-width:none; border-radius:0; }
+    @media (max-width: 700px) {
+      #mediaModal { padding:0; }
+      #mediaModal .media-dialog { border-radius:0; }
+      #mediaModal .media-head { padding:8px 10px; gap:8px; }
+      #mediaModal .media-head strong { font-size:14px; }
+    }
+
     /* SIGMET / PIREP badges */
     .badge {
       font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
@@ -445,7 +467,7 @@
         <img src="icon-72.png" srcset="icon-72.png 2x, icon-108.png 3x" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.48&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.49&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1617,12 +1639,13 @@
         html += `<p style="font-size:12px;color:var(--text-muted);font-style:italic">No recent PIREPs in the area.</p>`;
       }
       html += `</div></div>`;
-      // Link out to the CAVU ZOB pre-duty brief (a video with audio — opened in a new tab, never embedded)
+      // CAVU ZOB pre-duty brief: opens the media modal, which loads the video only then (v1.49).
+      // Cmd/Ctrl/Shift-click still opens CAVU in a new tab.
       html += `<div class="card"><div class="card-header"><strong style="font-size:14px">ATC Pre-Duty Brief</strong></div><div class="card-body">
         <div class="link-grid" style="grid-template-columns:1fr">
-          <a href="https://www.cavuwx.com/predutywx/zob/" target="_blank" rel="noopener noreferrer" class="link-card">
+          <a href="https://www.cavuwx.com/predutywx/zob/" target="_blank" rel="noopener noreferrer" class="link-card" onclick="if(!event.metaKey&&!event.ctrlKey&&!event.shiftKey){event.preventDefault();openMediaModal('cavu')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1.5V4"/><path d="M5.5 4h13l-2 5.5h-9z"/><path d="M10 4.2l.6 5.1M14 4.2l-.6 5.1"/><path d="M9.8 9.5L9 21M14.2 9.5L15 21"/><path d="M6 21h12"/></svg>
-            CAVU ZOB Pre-Duty Weather Brief (video, opens in new tab)
+            CAVU ZOB Pre-Duty Weather Brief (video)
           </a>
         </div></div></div>`;
       return html;
@@ -2159,8 +2182,74 @@
       });
     }
 
+    // ========== MEDIA MODAL (v1.49) ==========
+    // The iframe is created when the modal opens and removed when it closes, so nothing loads or plays
+    // until a click, and closing stops the CAVU video's audio.
+    const MEDIA_MAX_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+    const MEDIA_RESTORE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+    const MEDIA = {
+      cavu: {
+        title: "ATC Pre-Duty Weather Brief (ZOB)",
+        src: "https://www.cavuwx.com/predutywx/zob/",
+        frameTitle: "ATC Pre-Duty Weather Brief - Cleveland Center (ZOB)",
+        ext: ["https://www.cavuwx.com/predutywx/zob/", "Open on CAVU"],
+        foot: 'Briefing video from <a href="https://www.cavuwx.com/predutywx/zob/" target="_blank" rel="noopener noreferrer">CAVU</a>. It plays with audio; closing this window stops it.',
+      },
+    };
+    function openMediaModal(kind) {
+      const m = MEDIA[kind];
+      if (!m) return;
+      const modal = document.getElementById('mediaModal');
+      modal.dataset.kind = kind;
+      document.getElementById('mediaModalTitle').textContent = m.title;
+      const ext = document.getElementById('mediaModalExt');
+      ext.href = m.ext[0];
+      document.getElementById('mediaModalExtText').textContent = m.ext[1];
+      document.getElementById('mediaModalFoot').innerHTML = m.foot;
+      const tabs = document.getElementById('mediaTabs');
+      tabs.innerHTML = m.tabs ? m.tabs.map(([key, label]) => `<button type="button" class="chart-tab${key === m.defaultTab ? ' active' : ''}" data-media-tab="${key}">${label}</button>`).join('') : '';
+      tabs.style.display = m.tabs ? 'flex' : 'none';
+      const maxBtn = document.getElementById('mediaMaxBtn');
+      maxBtn.style.display = m.maximize ? 'flex' : 'none';
+      setMediaMax(false);
+      const f = document.createElement('iframe');
+      f.id = 'mediaFrame';
+      f.src = m.tabs ? m.urls[m.defaultTab] : m.src;
+      f.title = m.frameTitle;
+      const body = document.getElementById('mediaModalBody');
+      body.innerHTML = '';
+      body.appendChild(f);
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMediaModal() {
+      const modal = document.getElementById('mediaModal');
+      if (modal.style.display !== 'block') return;
+      modal.style.display = 'none';
+      document.getElementById('mediaModalBody').innerHTML = '';   // removes the iframe: stops video and audio
+      setMediaMax(false);
+      if (!briefOpen()) document.body.style.overflow = '';
+    }
+    function setMediaMax(on) {
+      document.getElementById('mediaModal').classList.toggle('max', on);
+      const b = document.getElementById('mediaMaxBtn');
+      b.innerHTML = on ? MEDIA_RESTORE_SVG : MEDIA_MAX_SVG;
+      b.setAttribute('aria-label', on ? 'Restore' : 'Maximize');
+      b.title = on ? 'Restore' : 'Maximize';
+    }
+    function toggleMediaMax() { setMediaMax(!document.getElementById('mediaModal').classList.contains('max')); }
+    document.addEventListener('click', e => {
+      const t = e.target && e.target.closest && e.target.closest('[data-media-tab]');
+      if (!t) return;
+      const m = MEDIA[document.getElementById('mediaModal').dataset.kind];
+      if (!m || !m.urls) return;
+      document.querySelectorAll('#mediaTabs .chart-tab').forEach(b => b.classList.toggle('active', b === t));
+      const f = document.getElementById('mediaFrame');
+      if (f) f.src = m.urls[t.dataset.mediaTab];
+    });
+
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.48";
+    const CURRENT_VERSION = "v1.49";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());
@@ -2525,7 +2614,7 @@
       document.body.style.overflow = '';
       if (tfrLeafMap) { tfrLeafMap.remove(); tfrLeafMap = null; }
     }
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTFRModal(); closeAlertModal(); closeLookupModal(); closeBriefModal(); } });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTFRModal(); closeAlertModal(); closeLookupModal(); closeBriefModal(); closeMediaModal(); } });
 
     // ========== PULL TO REFRESH ==========
     (function() {
@@ -2546,7 +2635,7 @@
       // scrollable child that isn't already at its top — otherwise dragging alert text reloads the page.
       function ptrBlocked(target) {
         if (!target || !target.closest) return false;
-        if (target.closest('#alertModal, #tfrModal, #briefModal, #lookupModal, .leaflet-container, iframe, .lightbox')) return true;
+        if (target.closest('#alertModal, #tfrModal, #briefModal, #lookupModal, #mediaModal, .leaflet-container, iframe, .lightbox')) return true;
         for (let el = target; el && el !== document.body; el = el.parentElement) {
           const oy = getComputedStyle(el).overflowY;
           if ((oy === 'auto' || oy === 'scroll') && el.scrollTop > 0) return true;
@@ -2927,6 +3016,21 @@
   </div>
 
   <!-- Airport lookup modal: any station's METAR and TAF, fetched only when Go is pressed -->
+  <!-- Media modal: CAVU pre-duty brief (v1.49), desktop ADS-B map (v1.50) -->
+  <div id="mediaModal" role="dialog" aria-modal="true" aria-labelledby="mediaModalTitle" onclick="if(event.target===this)closeMediaModal()">
+    <div class="media-dialog">
+      <div class="media-head">
+        <strong id="mediaModalTitle"></strong>
+        <div class="chart-tabs" id="mediaTabs" style="display:none"></div>
+        <a id="mediaModalExt" href="#" target="_blank" rel="noopener noreferrer" class="ext-link"><span id="mediaModalExtText"></span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+        <button type="button" class="icon-btn" id="mediaMaxBtn" onclick="toggleMediaMax()" aria-label="Maximize" title="Maximize" style="display:none"></button>
+        <button type="button" class="icon-btn" onclick="closeMediaModal()" aria-label="Close" style="font-size:22px;line-height:1;padding:4px 10px">&times;</button>
+      </div>
+      <div class="media-body" id="mediaModalBody"></div>
+      <div class="media-foot" id="mediaModalFoot"></div>
+    </div>
+  </div>
+
   <div id="lookupModal" role="dialog" aria-modal="true" aria-label="Airport lookup" onclick="if(event.target===this)closeLookupModal()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);overflow-y:auto;padding:20px">
     <div style="max-width:780px;margin:20px auto;background:var(--surface);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden">
       <div style="background:var(--caution-border);color:#1a2332;text-align:center;padding:8px 14px;font-size:13px;font-weight:600;line-height:1.4">⚠️ This information is for situational awareness only. It must not be used for official flight planning. Always obtain a proper weather briefing through approved sources.</div>
