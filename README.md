@@ -6,8 +6,16 @@ Classroom aviation weather display for BGSU aviation instruction: METARs/TAFs, P
 
 Live site: https://aert2800wx.netlify.app
 
-## Add to the Mac Dock
-The site runs as its own app in a window without browser controls (`manifest.json` has `display: standalone`), with the same icon as the iPad home screen.
+## Add to the Home Screen or Mac Dock
+The site runs as its own app in a window without browser controls (`manifest.json` has `display: standalone`), with the same icon on the home screen and the Dock.
+
+Home Screen:
+
+- **iPad / iPhone, Safari:** open the site, tap Share (the square with the up arrow), then Add to Home Screen. Leave Open as Web App on if it's shown, keep or edit the name, and tap Add.
+- **iPad / iPhone, Chrome:** open the site, tap Share in the address bar, then Add to Home Screen → Add.
+- **Android, Chrome:** open the site, then ⋮ menu → Add to Home screen (or Install app) → Install.
+
+Mac Dock:
 
 - **Safari** (macOS Sonoma or later): open the site, then File → Add to Dock (or Share → Add to Dock), keep or edit the name, and click Add.
 - **Chrome:** open the site, then ⋮ menu → Cast, Save, and Share → Install page as app (or the install icon in the address bar), and click Install. Chrome puts it in Applications; open it, then right-click its Dock icon → Options → Keep in Dock.

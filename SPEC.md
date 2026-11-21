@@ -22,6 +22,10 @@ Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). Al
 - Other sources: Open-Meteo (BG high/low, and model winds aloft), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and a link to the CAVU pre-duty brief.
 - PWA-lite: `manifest.json` and icons for Add to Home Screen (iPad/iPhone) and Add to Dock (Mac). There is no service worker.
   - The manifest's `display: standalone` opens the Dock or home-screen app in its own window without browser controls; the icon is `icon-180.png` (Safari, `apple-touch-icon`) or `icon-192/512.png` (Chrome, manifest).
+  - Home Screen install:
+    - **iPad / iPhone, Safari:** open the site, tap Share (the square with the up arrow), then Add to Home Screen. Leave Open as Web App on if it's shown, keep or edit the name, and tap Add.
+    - **iPad / iPhone, Chrome:** open the site, tap Share in the address bar, then Add to Home Screen → Add.
+    - **Android, Chrome:** open the site, then ⋮ menu → Add to Home screen (or Install app) → Install.
   - Mac Dock install:
     - **Safari** (macOS Sonoma or later): open the site, then File → Add to Dock (or Share → Add to Dock), keep or edit the name, and click Add.
     - **Chrome:** open the site, then ⋮ menu → Cast, Save, and Share → Install page as app (or the install icon in the address bar), and click Install. Chrome puts it in Applications; open it, then right-click its Dock icon → Options → Keep in Dock.
