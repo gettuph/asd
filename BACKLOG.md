@@ -20,7 +20,11 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Needs a decision
 
-Nothing right now.
+- Make the link to the pre-duty weather briefing open a modal that loads the video. 
+- On desktop, make a link to the adsb traffic that opens a modal showing the map with the BGSU fleet showing. The modal can be maximized to cover the window. Make no changes to the phone and tablet site.
+- Clear the Shelved Ideas list
+- Clear the offered but not chosen list
+- In backlog.md, include a heading for items that are approved but not yet built. 
 
 ## Fixes and cleanup
 
