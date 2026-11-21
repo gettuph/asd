@@ -2,7 +2,9 @@
 
 Ideas and open items that are not yet built. Nothing here should be built until the owner approves it. When an item ships, remove it here and update `SPEC.md`.
 
-## Planned (approved direction, not yet built)
+## Approved, not yet built
+
+Items the owner has said yes to that aren't built yet. Move an item here when it's approved; remove it when it ships.
 
 - **1G0 AWOS on demand via ATIS Relay.** Wood County (1G0) has an AWOS-3PT (120.725, 419-354-1415) that is not on the FAA network, and the airport won't connect it. Plan: a Netlify Function (`netlify/functions/awos-1g0.js`) holding an ATIS Relay API key in Netlify's environment settings relays two calls — `GET /api/atis_relay_dial?icao=1G0&product=awos` to start a capture and `GET /api/atis_relay_airport?icao=1G0` to read the transcript. A "1G0 AWOS" card in the local group gets a button that requests a fresh report and shows the transcript, its age, a parsed METAR-style line only when the transcript parses cleanly, and the "Unofficial. Not for operational use." notice. On demand only (no scheduling) so a few requests a day stay inside the plan's 100 included dials (overage is 19¢ per usable dial; dialing is capped at once per 10 minutes per airport). Owner creates the ATIS Relay account and sets the key in Netlify. **Blocked (2026-11-11):** tested with the owner's Plus-tier key — `atis_relay_dial?icao=1G0` returns 404 "Airport not found" (also for K1G0); `faa_loc_id=1G0` returns 422 `not_dialable`, and the airport endpoint with `faa_loc_id` returns the wrong airport (a Haines, AK airpark; same for TOL), so that lookup is broken on their side. 1G0 is not in their transcribed-airport index. Owner to ask ATIS Relay support to make 1G0 addressable in the API and enable its AWOS phone path. Owner added `ATIS_RELAY_KEY` to Netlify (functions/runtime scope) on 2026-11-11. Retested the same day: still 404 / 422 `not_dialable`.
   - **License: classroom use permitted (owner decision, 2026-11-16).** The owner reads ATIS Relay's 2026-11-14 reply as permission to use the API in the dashboard for classroom purposes. The owner had asked "Would you give me permission to use the API for education purposes, or let me know what type of educational arrangement could work?" and the founder answered: "If you do end up hosting a receiver you can keep your current plan for free. We don't have an educator plan yet, I will see if I can give you access to all of the APIs under your current plan in the meantime." The dashboard may be shown in class and its address shared with students with the ATIS Relay panels on. This replaces the personal-use-only rule of 2026-11-12. The compliance checklist below still applies in full. The permission is tied to this exchange: if ATIS Relay later sets an educator plan or other terms, follow those.
@@ -20,11 +22,7 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Needs a decision
 
-- Make the link to the pre-duty weather briefing open a modal that loads the video. 
-- On desktop, make a link to the adsb traffic that opens a modal showing the map with the BGSU fleet showing. The modal can be maximized to cover the window. Make no changes to the phone and tablet site.
-- Clear the Shelved Ideas list
-- Clear the offered but not chosen list
-- In backlog.md, include a heading for items that are approved but not yet built. 
+Nothing right now.
 
 ## Fixes and cleanup
 
@@ -41,12 +39,8 @@ Ideas and open items that are not yet built. Nothing here should be built until 
 
 ## Shelved ideas
 
-- **App store versions.** Wrap the app with Capacitor or similar. Apple may reject apps that only wrap a website.
+Nothing right now.
 
 ## Ideas offered but not chosen
 
-These were suggested in v.051. The Convective Outlook and CWAs were built then; D-ATIS was built later (v1.37, v1.40).
-
-- NWS Area Forecast Discussion (CLE or ILN offices).
-- Side-by-side icing PIREPs and G-AIRMET icing.
-- Agent to call 1G0 ASOS at 55 minutes past each hour and transcribe the METAR from the ASOS. (Superseded by the ATIS Relay on-demand plan above; 1G0 has an AWOS-3PT, not an ASOS.)
+Nothing right now.
