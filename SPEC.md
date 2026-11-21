@@ -20,7 +20,12 @@ Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). Al
 - Fetch order for AWC data: Netlify proxy first, then fallback to codetabs and allorigins. Each try has its own timeout (proxy timeout is 10 s).
 - External libraries: Leaflet 1.9.4 (TFR map, OpenStreetMap tiles), loaded only when a TFR map is first opened (`loadLeaflet`; a failed load shows "Map unavailable…" and retries next time). Fonts: General Sans, JetBrains Mono.
 - Other sources: Open-Meteo (BG high/low, and model winds aloft), ArcGIS FAA Special Use Airspace feature service, NWS radar, WPC prog charts, SPC outlook, airplanes.live, and a link to the CAVU pre-duty brief.
-- PWA-lite: `manifest.json` and icons for Add to Home Screen. There is no service worker.
+- PWA-lite: `manifest.json` and icons for Add to Home Screen (iPad/iPhone) and Add to Dock (Mac). There is no service worker.
+  - The manifest's `display: standalone` opens the Dock or home-screen app in its own window without browser controls; the icon is `icon-180.png` (Safari, `apple-touch-icon`) or `icon-192/512.png` (Chrome, manifest).
+  - Mac Dock install:
+    - **Safari** (macOS Sonoma or later): open the site, then File → Add to Dock (or Share → Add to Dock), keep or edit the name, and click Add.
+    - **Chrome:** open the site, then ⋮ menu → Cast, Save, and Share → Install page as app (or the install icon in the address bar), and click Install. Chrome puts it in Applications; open it, then right-click its Dock icon → Options → Keep in Dock.
+  - The version banner works the same in the installed app.
 
 ## 2. Airports
 
