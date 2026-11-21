@@ -19,7 +19,7 @@
 <link rel="author" href="https://www.perplexity.ai/computer">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Situation Dashboard v1.49</title>
+  <title>Aviation Situation Dashboard v1.50</title>
   <!-- Favicon & home screen icons -->
   <!-- ?v= forces browsers to fetch a changed tab icon; bump it whenever favicon.svg / icon-32.png / favicon.ico change -->
   <link rel="icon" href="favicon.ico?v=148" sizes="48x48">
@@ -183,6 +183,13 @@
       .bottom-panels { grid-column: 1 / -1; }
       /* ADS-B at 3/4 width, centered, so the strips beside the map can still scroll the page (the map captures the wheel) */
       #panel-adsb { width: 75%; margin: 0 auto; }
+    }
+    /* Desktop = wide screen with a mouse/trackpad (v1.50): the ADS-B map moves into a modal opened from the
+       Region column, and the embedded bottom panel is not shown (or loaded). Phones and tablets are unchanged. */
+    .desktop-only { display: none; }
+    @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+      .bottom-panels { display: none !important; }
+      .desktop-only { display: block; }
     }
 
     .section-title {
@@ -467,7 +474,7 @@
         <img src="icon-72.png" srcset="icon-72.png 2x, icon-108.png 3x" width="36" height="36" alt="ASD" style="border-radius:7px;flex-shrink:0">
         <div>
           <h1>Aviation Situation Dashboard</h1>
-          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.49&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
+          <small style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;white-space:nowrap">v1.50&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock12h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clock24h"></span>&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="clockZ"></span><span id="bgForecastWrap" style="display:none">&ensp;<span style="opacity:0.35">·</span>&ensp;<span id="bgForecast" style="opacity:0.85;letter-spacing:0.01em"></span></span></small>
         </div>
       </div>
       <div class="controls">
@@ -1648,6 +1655,14 @@
             CAVU ZOB Pre-Duty Weather Brief (video)
           </a>
         </div></div></div>`;
+      // Desktop only (v1.50): live ADS-B map in the media modal, BGSU fleet first. Cmd/Ctrl/Shift-click opens airplanes.live.
+      html += `<div class="card desktop-only"><div class="card-header"><strong style="font-size:14px">Live ADS-B Traffic</strong></div><div class="card-body">
+        <div class="link-grid" style="grid-template-columns:1fr">
+          <a href="${ADSB_URLS.bgsu}" target="_blank" rel="noopener noreferrer" class="link-card" onclick="if(!event.metaKey&&!event.ctrlKey&&!event.shiftKey){event.preventDefault();openMediaModal('adsb')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+            BGSU Fleet live map (≤ 10,000 ft)
+          </a>
+        </div></div></div>`;
       return html;
     }
 
@@ -2195,6 +2210,17 @@
         ext: ["https://www.cavuwx.com/predutywx/zob/", "Open on CAVU"],
         foot: 'Briefing video from <a href="https://www.cavuwx.com/predutywx/zob/" target="_blank" rel="noopener noreferrer">CAVU</a>. It plays with audio; closing this window stops it.',
       },
+      // Desktop ADS-B map (v1.50): opens on the BGSU fleet; can be maximized to fill the window
+      adsb: {
+        title: "Live ADS-B Traffic (≤ 10,000 ft)",
+        tabs: [["all", "All Traffic"], ["bgsu", "BGSU Fleet"]],
+        defaultTab: "bgsu",
+        urls: ADSB_URLS,
+        frameTitle: "airplanes.live - Live ADS-B Traffic Centered on 1G0",
+        ext: [ADSB_URLS.all, "Open full map"],
+        maximize: true,
+        foot: 'Source: <a href="https://airplanes.live" target="_blank" rel="noopener noreferrer">airplanes.live</a> — open source, unfiltered ADS-B data. Centered on Bowling Green (1G0).',
+      },
     };
     function openMediaModal(kind) {
       const m = MEDIA[kind];
@@ -2249,7 +2275,7 @@
     });
 
     // ========== VERSION CHECK ==========
-    const CURRENT_VERSION = "v1.49";
+    const CURRENT_VERSION = "v1.50";
     async function checkForUpdate() {
       try {
         const r = await fetch("/version.txt?t=" + Date.now());

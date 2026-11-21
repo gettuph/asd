@@ -25,6 +25,7 @@ Requires Node 20+. No dependencies to install.
 - every top-level `addEventListener` target appears in the HTML before the `<script>` (elements after it are `null` at load);
 - D-ATIS: ATIS Relay notice word for word, NOT FOR OPERATIONAL USE, "Data: ATIS Relay" link, browser never calls atisrelay.com directly, function reads the key from the environment, allow-list, cache ≤24 h, 10-min auto update and 5-min Refresh lockout, client bucket matches the function's, requests carry the bucket, function User-Agent version matches version.txt, panel sits between TAF and Runway winds;
 - airport lookup: modal exists with the disclaimer, repeats the text box and Go, fetches only on submit, blocks pull-to-refresh;
+- desktop (wide + mouse/trackpad) hides the bottom ADS-B panel and shows the Region ADS-B tile, which opens the media modal on the BGSU fleet with maximize;
 - `_redirects` keeps the `?` before `:splat` on AWC rules and covers every proxy path the JS uses; no windtemp rule or code (FD tables discontinued);
 - load order: Leaflet not in `<head>` (loaded on demand), charts and SUA start at init, each weather product renders as it arrives;
 - manifest icons exist; no tokens committed anywhere in the repo (root, `site/`, `scripts/`, `tests/`); no `console.log`.

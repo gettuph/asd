@@ -112,6 +112,8 @@ check('function cache is at most 24 h', Number((/const CACHE_S = (\d+)/.exec(fnS
   check('D-ATIS sits between TAF and Runway winds in the card', taf > 0 && atis > taf && rwy > atis);
 }
 
+check('desktop (wide + mouse/trackpad): bottom ADS-B panel hidden, desktop-only tiles shown', /@media \(min-width: 1024px\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.bottom-panels \{ display: none !important; \}\s*\.desktop-only \{ display: block; \}/.test(html) && /\.desktop-only \{ display: none; \}/.test(html));
+check('desktop ADS-B tile opens the media modal on the BGSU fleet, with maximize', /class="card desktop-only"[\s\S]*?openMediaModal\('adsb'\)/.test(src) && /adsb: \{[\s\S]*?defaultTab: "bgsu"[\s\S]*?maximize: true/.test(src));
 check('desktop: ADS-B panel is 3/4 width and centered (page stays scrollable beside the map)', /@media \(min-width: 1024px\)[\s\S]*?#panel-adsb \{ width: 75%; margin: 0 auto; \}/.test(html));
 
 // ---- 7. Mobile Safari rules (AGENTS.md rule 9) -----------------------------------------

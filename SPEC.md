@@ -1,6 +1,6 @@
 # Specification: Aviation Situation Dashboard
 
-Current version: **v1.49** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
+Current version: **v1.50** (`CURRENT_VERSION` in `site/index.html` and `site/version.txt`).
 Reference point: 1G0, Wood County Airport, Bowling Green, OH (41.39, -83.63). All distances are in nautical miles from 1G0 unless noted.
 
 ## 1. Architecture
@@ -46,7 +46,7 @@ There are 16 airports in three distance groups. Each has ICAO code, name, city, 
   - Clock colons blink once a second instead of showing running seconds, so the layout doesn't shift.
   - 24-hour time uses `hourCycle: 'h23'`, so midnight shows 00:xx.
   - Controls, left to right: airport lookup box + Go (dimmed; collapses to a dimmed magnifier icon below 700 px), briefing view (dimmed), fullscreen (dimmed, hidden if the browser doesn't support it), light/dark toggle, and refresh.
-- **Tabs, in order:** Airports, Charts, Region, ADS-B. On desktop, Airports, Charts, and Region show as three equal columns, with ADS-B below them at 3/4 width, centered, so the strips on either side can still scroll the page (the map captures the mouse wheel).
+- **Tabs, in order:** Airports, Charts, Region, ADS-B. At 1024 px and wider, Airports, Charts, and Region show as three equal columns. **Desktop** (1024 px+ with a mouse or trackpad: `(hover: hover) and (pointer: fine)`, v1.50): the ADS-B map is not on the page; a "Live ADS-B Traffic" tile at the bottom of the Region column opens it in the media modal. **Tablets** 1024 px+ (touch, e.g. iPad landscape): ADS-B below the columns at 3/4 width, centered, so the strips on either side can still scroll the page (the map captures the wheel). An iPad used with a trackpad may count as desktop.
 - **Banners, at the top as needed:** new version available, METAR outage, stale data, and TFR.
 
 ## 4. Airport cards
@@ -187,7 +187,8 @@ The header theme is based only on the KTOL METAR body, before `RMK`.
 
 ## 10. ADS-B tab
 
-- **ADS-B:** an airplanes.live iframe that loads automatically. All Traffic and BGSU Fleet toggles. BGSU Fleet (`filterCallSign=BG`) is the default.
+- **ADS-B (phones and tablets):** an airplanes.live iframe that loads automatically when it scrolls into view. All Traffic and BGSU Fleet toggles. BGSU Fleet (`filterCallSign=BG`) is the default.
+- **ADS-B (desktop, v1.50):** the Region column's last card, "Live ADS-B Traffic", has one tile, "BGSU Fleet live map (≤ 10,000 ft)" (airplane icon; Cmd/Ctrl/Shift-click opens airplanes.live in a new tab). It opens the media modal titled "Live ADS-B Traffic (≤ 10,000 ft)" on the BGSU fleet, with All Traffic / BGSU Fleet buttons, "Open full map", a maximize button that fills the whole window (it becomes Restore), and ×; footer with the airplanes.live source line. The map loads only when the modal opens and is removed when it closes; the embedded bottom panel is hidden and never loads on desktop.
 
 ## 11. Refresh timing
 
